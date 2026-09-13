@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Pertemuan Les</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas untuk mengubah HTML menjadi Gambar -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- Container Utama -->
+    <div class="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
+        
+        <!-- Area Kalender yang Akan Dijadikan Gambar/Di-share -->
+        <div id="calendar-card" class="bg-white p-4 rounded-xl">
+            <!-- Judul Bulan & Tahun -->
+            <h2 id="month-year-title" class="text-xl font-bold text-gray-800 mb-6"></h2>
+
+            <!-- Header Hari (Minggu - Sabtu) -->
+            <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-sm mb-4">
+                <div>Minggu</div>
+                <div>Senin</div>
+                <div>Selasa</div>
+                <div>Rabu</div>
+                <div>Kamis</div>
+                <div>Jumat</div>
+                <div>Sabtu</div>
+            </div>
+
+            <!-- Grid Tanggal -->
+            <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium">
+                <!-- Tanggal di-generate otomatis oleh JS -->
+            </div>
+        </div>
+
+        <!-- Panel Kontrol Aksi (Tidak Masuk ke dalam Gambar) -->
+        <div class="mt-6 border-t pt-4 flex flex-col gap-3">
+            <p class="text-xs text-gray-500 text-center">Klik pada tanggal di atas untuk me-highlight jadwal les.</p>
+
+            <button onclick="shareToWhatsApp()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.705 1.754zm6.097-4.148l.377.224c1.474.874 3.167 1.335 4.891 1.337 5.207 0 9.444-4.237 9.447-9.445.002-2.523-.979-4.894-2.76-6.677-1.782-1.782-4.155-2.763-6.678-2.764-5.208 0-9.444 4.237-9.446 9.446-.001 1.831.523 3.617 1.517 5.176l.248.389-1.006 3.674 3.76-.986z"/>
+                </svg>
+                Bagikan ke WhatsApp
+            </button>
+
+            <button onclick="downloadCalendar()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200 text-sm">
+                📥 Download Gambar Kalender
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const date = new Date();
+        const currentYear = date.getFullYear();
+        const currentMonth = date.getMonth(); // 0-indexed (0 = Jan, 8 = Sep)
+
+        const monthNames = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+
+        // Set Judul Bulan & Tahun
+        document.getElementById("month-year-title").innerText = `${monthNames[currentMonth]} ${currentYear}`;
+
+        const calendarDaysContainer = document.getElementById("calendar-days");
+
+        // Dapatkan hari pertama dari bulan ini (0 = Minggu, 1 = Senin, dst)
+        const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+
+        // Dapatkan jumlah total hari di bulan ini
+        const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+        // Render tanggal kosong sebelum tanggal 1
+        for (let x = 0; x < firstDayIndex; x++) {
+            const emptyDiv = document.createElement("div");
+            calendarDaysContainer.appendChild(emptyDiv);
+        }
+
+        // Render tanggal 1 s/d selesai
+        for (let day = 1; day <= totalDays; day++) {
+            const dayDiv = document.createElement("div");
+            dayDiv.className = "flex items-center justify-center h-9 w-9 mx-auto rounded-full cursor-pointer hover:bg-gray-100 transition";
+            dayDiv.innerText = day;
+            
+            // Toggle highlight saat tanggal diklik
+            dayDiv.onclick = function() {
+                if (dayDiv.classList.contains("bg-blue-600")) {
+                    dayDiv.classList.remove("bg-blue-600", "text-white", "font-bold");
+                    dayDiv.classList.add("hover:bg-gray-100");
+                } else {
+                    dayDiv.classList.add("bg-blue-600", "text-white", "font-bold");
+                    dayDiv.classList.remove("hover:bg-gray-100");
+                }
+            };
+
+            calendarDaysContainer.appendChild(dayDiv);
+        }
+
+        // Fungsi Download Gambar Kalender
+        function downloadCalendar() {
+            const card = document.getElementById("calendar-card");
+            html2canvas(card, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Jadwal_Les_${monthNames[currentMonth]}_${currentYear}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }
+
+        // Fungsi Share ke WhatsApp (Mendukung Share File di Mobile & Link Web di Desktop)
+        async function shareToWhatsApp() {
+            const card = document.getElementById("calendar-card");
+            
+            const canvas = await html2canvas(card, { scale: 2 });
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `Jadwal_Les_${monthNames[currentMonth]}.png`, { type: 'image/png' });
+
+                // Jika Browser HP mendukung Web Share API untuk Berkas
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Jadwal Les',
+                            text: `Berikut jadwal pertemuan les untuk bulan ${monthNames[currentMonth]} ${currentYear}.`
+                        });
+                    } catch (err) {
+                        console.log("Share dibatalkan/gagal", err);
+                    }
+                } else {
+                    // Fallback untuk Browser Laptop/Desktop (Membuka WA Web)
+                    downloadCalendar();
+                    const text = encodeURIComponent(`Halo, berikut jadwal pertemuan les untuk bulan ${monthNames[currentMonth]} ${currentYear}.\n\n*(Gambar kalender telah ter-download otomatis, silakan lampirkan gambar tersebut di pesan ini)*`);
+                    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+                }
+            }, 'image/png');
+        }
+    </script>
+</body>
+</html>
