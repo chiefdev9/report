@@ -13,6 +13,22 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f3f4f6;
         }
+
+        /* 
+         * FIX PERGESERAN RENDERING CANVAS (CRITICAL FIX):
+         * html2canvas sering salah menghitung posisi angka jika menggunakan Flexbox centering (flex items-center justify-center).
+         * Sebagai gantinya, kita paksa elemen tanggal berukuran pasti (fixed size) 
+         * dan menggunakan 'line-height' yang identik dengan tingginya untuk meratakan teks persis di tengah secara vertikal.
+         */
+        .day-tile {
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            text-align: center !important;
+            display: inline-block !important;
+            border-radius: 9999px !important; /* Membuat bentuk lingkaran sempurna */
+            box-sizing: border-box !important;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
@@ -26,7 +42,7 @@
             <h2 id="month-year-title" class="text-xl font-bold text-gray-800 mb-6"></h2>
 
             <!-- Header Hari (Minggu - Sabtu) -->
-            <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4">
+            <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4 justify-items-center">
                 <div>
                     <span class="sm:hidden">Min</span>
                     <span class="hidden sm:block">Minggu</span>
@@ -57,15 +73,19 @@
                 </div>
             </div>
 
-            <!-- Grid Tanggal -->
-            <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium">
+            <!-- 
+                GRID TANGGAL:
+                Menambahkan 'justify-items-center' agar setiap item tanggal diposisikan tepat 
+                di tengah grid-cell masing-masing tanpa mengandalkan 'mx-auto' pada child-element.
+            -->
+            <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center">
                 <!-- Tanggal di-generate otomatis oleh JS -->
             </div>
         </div>
 
         <!-- Panel Kontrol Aksi (Tidak Masuk ke dalam Gambar) -->
         <div class="mt-6 border-t pt-4 flex flex-col gap-3">
-            <p class="text-xs text-gray-500 text-center">Klik tanggal untuk highlight. **Tahan klik (long-press)** untuk pilih warna lain.</p>
+            <p class="text-xs text-gray-500 text-center">Klik tanggal untuk highlight. Tahan klik (long-press) untuk opsi warna.</p>
 
             <button onclick="shareToWhatsApp()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200">
                 <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -83,23 +103,18 @@
     <script>
         /**
          * =========================================================================
-         * DOKUMENTASI & DESAIN KONSEP UI/UX COLOR PICKER TANGGAL
+         * PENJELASAN INTEGRASI UX & OPTIMASI KANVAS (PRESET PERSISI BERSAMA HTML2CANVAS)
          * =========================================================================
-         * 1. UX Interaksi Berlapis (Layered Interaction):
-         *    - Klik Singkat (<500ms): Berfungsi sebagai toggle cepat warna bawaan/default (Emerald).
-         *    - Klik Tahan / Long-Press (>=500ms): Mengidentifikasi niat pengguna untuk mengustomisasi warna.
-         *      Sistem membatalkan pergerakan klik biasa dan menampilkan Floating Palette (Color Picker).
+         * Masalah Utama Gambar Tidak Presisi:
+         * 1. html2canvas kesulitan menerjemahkan Flexbox dinamik (`flex items-center justify-center`) 
+         *    sehingga baseline teks dan background lingkaran sering offset (geser beberapa piksel).
+         * 2. Keberadaan elemen melayang yang memiliki CSS `position: absolute` (Pop-up Color Picker) 
+         *    walau disembunyikan tetap merusak kalkulasi koordinat DOM oleh pustaka ekspor.
          *
-         * 2. UX Aksesibilitas Lintas Perangkat (Cross-Device Readiness):
-         *    - Menggunakan kombinasi Mouse Event (`mousedown`, `mouseup`, `mouseleave`) untuk PC/Laptop 
-         *      dan Touch Event (`touchstart`, `touchend`, `touchcancel`) untuk perangkat Mobile/HP.
-         * 
-         * 3. UI Micro-Interaction & Positioning Architecture:
-         *    - Pembungkus tanggal diberi `position: relative`, sementara Pop-up Picker diberi `position: absolute`.
-         *      Teknik positioning `-top-12 left-1/2 -translate-x-1/2` menaruh pop-up melayang pas di atas tanggal 
-         *      tanpa mengganggu layout grid kalender di sekitarnya.
-         *    - Efek visual animasi dibuat menggunakan CSS Transition (`opacity-0 scale-95` ke `opacity-100 scale-100`) 
-         *      sehingga pop-up timbul secara halus (smooth pop-in effect).
+         * Solusi yang Diterapkan:
+         * 1. Mengganti Flexbox tanggal menjadi CSS Klasik (`display: inline-block` + `line-height`).
+         * 2. Menggunakan Fitur 'onclone' bawaan html2canvas untuk MENULIS ULANG (Membuang) 
+         *    semua DOM Pop-up Picker sebelum canvas dirender. Hasilnya, gambar murni hanya kalender bersih.
          * =========================================================================
          */
 
@@ -118,32 +133,35 @@
         const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
         const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-        // Variabel penampung state Pop-up & Timer Long Press
-        let activePicker = null;       // Menyimpan referensi elemen pop-up yang sedang terbuka
-        let pressTimer = null;         // Timer penentu durasi klik tahan
-        let isLongPress = false;       // Flag pencegah `onclick` jika aksi adalah long-press
+        let activePicker = null;
+        let pressTimer = null;
+        let isLongPress = false;
 
-        // Daftar kelas warna highlighter Tailwind
         const highlightColors = ["bg-emerald-200", "bg-yellow-200", "bg-rose-200", "bg-sky-200"];
 
         // Render cell kosong sebelum tanggal 1
         for (let x = 0; x < firstDayIndex; x++) {
             const emptyDiv = document.createElement("div");
+            emptyDiv.className = "w-9 h-9"; // Samakan ukuran dengan tanggal agar grid sejajar
             calendarDaysContainer.appendChild(emptyDiv);
         }
 
         // Render Tanggal 1 s/d Selesai
         for (let day = 1; day <= totalDays; day++) {
-            // Container utama per tanggal: Menyediakan kerangka posisi 'relative' untuk pop-up picker
             const dayDiv = document.createElement("div");
-            dayDiv.className = "relative flex items-center justify-center h-9 w-9 mx-auto rounded-full cursor-pointer hover:bg-gray-100 transition select-none";
+            
+            /* 
+             * Menerapkan class khusus '.day-tile' yang sudah diisi properti line-height 
+             * agar presisi saat dikonversi html2canvas.
+             */
+            dayDiv.className = "relative day-tile cursor-pointer hover:bg-gray-100 transition select-none";
             dayDiv.innerText = day;
 
-            // Template UI Pop-up Mini Color Picker (Melayang di atas cell tanggal)
+            // Template Pop-up Color Picker
             const pickerDiv = document.createElement("div");
-            pickerDiv.className = "hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-20 transition-all duration-150 transform scale-95 opacity-0";
+            // Menambahkan marker kelas 'pop-picker' agar mudah diidentifikasi & dihapus saat proses ekspor gambar
+            pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-20 transition-all duration-150 transform scale-95 opacity-0";
             
-            // Pilihan warna swatch
             const colors = [
                 { bg: "bg-emerald-200", dot: "bg-emerald-400" },
                 { bg: "bg-yellow-200", dot: "bg-yellow-400" },
@@ -151,15 +169,13 @@
                 { bg: "bg-sky-200", dot: "bg-sky-400" }
             ];
 
-            // Render opsi lingkaran warna di dalam pop-up
             colors.forEach(c => {
                 const btn = document.createElement("button");
                 btn.type = "button";
                 btn.className = `w-5 h-5 rounded-full ${c.dot} hover:scale-125 transition-transform duration-100 focus:outline-none`;
                 
-                // UX Event Handshake: Klik tombol warna memilih warna tersebut
                 btn.onclick = function(e) {
-                    e.stopPropagation(); // Mencegah klik menembus ke elemen tanggal di bawahnya
+                    e.stopPropagation();
                     applyHighlight(dayDiv, c.bg);
                     closePicker();
                 };
@@ -168,25 +184,19 @@
 
             dayDiv.appendChild(pickerDiv);
 
-            // -----------------------------------------------------------------
-            // LOGIKA & EVENT HANDLING (LONG PRESS & KLIK BIASA)
-            // -----------------------------------------------------------------
-
-            // Fungsi memulai perhitungan detik tahanan
+            // Logika Long Press (Tahan Klik)
             function startPress(e) {
                 isLongPress = false;
                 pressTimer = setTimeout(() => {
                     isLongPress = true;
                     openPicker(pickerDiv);
-                }, 500); // Tahan selama 500ms (0.5 detik) untuk membuka pop-up
+                }, 500);
             }
 
-            // Fungsi membatalkan timer jika tombol dilepas sebelum 500ms
             function cancelPress() {
                 clearTimeout(pressTimer);
             }
 
-            // Pasang event listener untuk menangkap gestur tekan (Desktop + Mobile)
             dayDiv.addEventListener("mousedown", startPress);
             dayDiv.addEventListener("touchstart", startPress, { passive: true });
 
@@ -195,56 +205,41 @@
             dayDiv.addEventListener("touchend", cancelPress);
             dayDiv.addEventListener("touchcancel", cancelPress);
 
-            // Eksekusi Klik Standar (Quick Toggle Warna Default Emerald)
+            // Action Klik Biasa (Toggle Default Emerald)
             dayDiv.onclick = function(e) {
-                // Abaikan klik jika bersumber dari dalam Pop-up Picker
-                if (e.target.closest(".shadow-xl")) return;
+                if (e.target.closest(".pop-picker")) return;
 
-                // Abaikan klik jika aksi sebelumnya adalah Long-Press
                 if (isLongPress) {
                     isLongPress = false;
                     return;
                 }
 
                 closePicker();
-                // Jalankan toggle standar (emerald-200)
                 applyHighlight(dayDiv, "bg-emerald-200");
             };
 
             calendarDaysContainer.appendChild(dayDiv);
         }
 
-        /**
-         * FUNGSI KELOLA HIGHLIGHT TANGGAL
-         * Mengatur kelas visual Tailwind untuk tanggal yang di-highlight.
-         */
+        // Fungsi Toggle Highlight
         function applyHighlight(element, targetColorClass) {
-            // Cari warna aktif saat ini pada elemen tanggal
             const currentColor = highlightColors.find(color => element.classList.contains(color));
 
             if (currentColor === targetColorClass) {
-                // Jika warna yang diklik sama dengan warna aktif -> Hapus Highlight (Reset)
                 element.classList.remove(currentColor, "text-gray-900", "font-bold");
                 element.classList.add("hover:bg-gray-100");
             } else {
-                // Jika warna berbeda -> Ganti dengan warna baru & pertahankan font-bold
                 element.classList.remove(...highlightColors, "hover:bg-gray-100");
                 element.classList.add(targetColorClass, "text-gray-900", "font-bold");
             }
         }
 
-        /**
-         * FUNGSI ANIMAIS POP-UP PICKER (OPEN / CLOSE)
-         * Mengontrol transisi visual masuk dan keluar pop-up.
-         */
+        // Kontrol Animasi Pop-up
         function openPicker(pickerEl) {
-            if (activePicker && activePicker !== pickerEl) {
-                closePicker(); // Sembunyikan picker lain jika ada yang terbuka
-            }
+            if (activePicker && activePicker !== pickerEl) closePicker();
 
             activePicker = pickerEl;
             pickerEl.classList.remove("hidden");
-            // Timeout tipis untuk memberikan kesempatan DOM menyadari perubahaan class sebelum animasi CSS berjalan
             setTimeout(() => {
                 pickerEl.classList.remove("scale-95", "opacity-0");
                 pickerEl.classList.add("scale-100", "opacity-100");
@@ -259,26 +254,46 @@
             
             setTimeout(() => {
                 pickerEl.classList.add("hidden");
-            }, 150); // Sesuaikan durasi timeout dengan durasi transisi CSS (150ms)
+            }, 150);
             
             activePicker = null;
         }
 
-        // UX Helper: Tutup pop-up jika pengguna mengetuk area kosong mana saja di luar kalender
         document.addEventListener("click", function(e) {
             if (activePicker && !e.target.closest(".relative")) {
                 closePicker();
             }
         });
 
-        // -----------------------------------------------------------------
-        // FUNGSI EKSPOR & SHARE KALENDER
-        // -----------------------------------------------------------------
-
-        function downloadCalendar() {
-            closePicker(); // Pastikan pop-up tidak ikut terfoto saat ekspor gambar
+        /**
+         * =========================================================================
+         * OPTIMASI FUNGSI KANVAS ELEMEN KALENDER (GENERATING PICTURE)
+         * =========================================================================
+         * Menggunakan Callback `onclone`:
+         * `html2canvas` akan menduplikat elemen HTML di latar belakang sebelum memproses gambar.
+         * Lewat `onclone`, kita me-remove semua elemen `.pop-picker` secara paksa dari 
+         * dokumen kloningan agar tidak merusak perhitungan tata letak koordinat canvas.
+         * =========================================================================
+         */
+        function generateCalendarCanvas() {
+            closePicker();
             const card = document.getElementById("calendar-card");
-            html2canvas(card, { scale: 2 }).then(canvas => {
+
+            return html2canvas(card, { 
+                scale: 2,           // Memperjelas kualitas resolusi gambar (Retina Ready)
+                useCORS: true,       // Menghindari issue CORS jika ada resource eksternal
+                logging: false,      // Mematikan log di console browser
+                onclone: (clonedDoc) => {
+                    // Cari dan bersihkan elemen pop-up picker dari dokumen salinan
+                    const pickers = clonedDoc.querySelectorAll(".pop-picker");
+                    pickers.forEach(el => el.remove());
+                }
+            });
+        }
+
+        // Ekspor ke Berkas Gambar (PNG)
+        function downloadCalendar() {
+            generateCalendarCanvas().then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Jadwal_Les_${monthNames[currentMonth]}_${currentYear}.png`;
                 link.href = canvas.toDataURL("image/png");
@@ -286,11 +301,10 @@
             });
         }
 
+        // Share Fitur Berkas ke Aplikasi WhatsApp
         async function shareToWhatsApp() {
-            closePicker(); // Pastikan pop-up tidak ikut terfoto saat ekspor gambar
-            const card = document.getElementById("calendar-card");
+            const canvas = await generateCalendarCanvas();
             
-            const canvas = await html2canvas(card, { scale: 2 });
             canvas.toBlob(async (blob) => {
                 const file = new File([blob], `Jadwal_Les_${monthNames[currentMonth]}.png`, { type: 'image/png' });
 
