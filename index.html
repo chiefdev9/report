@@ -26,36 +26,36 @@
             <h2 id="month-year-title" class="text-xl font-bold text-gray-800 mb-6"></h2>
 
             <!-- Header Hari (Minggu - Sabtu) -->
-<div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4">
-    <div>
-        <span class="sm:hidden">Min</span>
-        <span class="hidden sm:block">Minggu</span>
-    </div>
-    <div>
-        <span class="sm:hidden">Sen</span>
-        <span class="hidden sm:block">Senin</span>
-    </div>
-    <div>
-        <span class="sm:hidden">Sel</span>
-        <span class="hidden sm:block">Selasa</span>
-    </div>
-    <div>
-        <span class="sm:hidden">Rab</span>
-        <span class="hidden sm:block">Rabu</span>
-    </div>
-    <div>
-        <span class="sm:hidden">Kam</span>
-        <span class="hidden sm:block">Kamis</span>
-    </div>
-    <div>
-        <span class="sm:hidden">Jum</span>
-        <span class="hidden sm:block">Jumat</span>
-    </div>
-    <div>
-        <span class="sm:hidden">Sab</span>
-        <span class="hidden sm:block">Sabtu</span>
-    </div>
-</div>
+            <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4">
+                <div>
+                    <span class="sm:hidden">Min</span>
+                    <span class="hidden sm:block">Minggu</span>
+                </div>
+                <div>
+                    <span class="sm:hidden">Sen</span>
+                    <span class="hidden sm:block">Senin</span>
+                </div>
+                <div>
+                    <span class="sm:hidden">Sel</span>
+                    <span class="hidden sm:block">Selasa</span>
+                </div>
+                <div>
+                    <span class="sm:hidden">Rab</span>
+                    <span class="hidden sm:block">Rabu</span>
+                </div>
+                <div>
+                    <span class="sm:hidden">Kam</span>
+                    <span class="hidden sm:block">Kamis</span>
+                </div>
+                <div>
+                    <span class="sm:hidden">Jum</span>
+                    <span class="hidden sm:block">Jumat</span>
+                </div>
+                <div>
+                    <span class="sm:hidden">Sab</span>
+                    <span class="hidden sm:block">Sabtu</span>
+                </div>
+            </div>
 
             <!-- Grid Tanggal -->
             <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium">
@@ -65,7 +65,7 @@
 
         <!-- Panel Kontrol Aksi (Tidak Masuk ke dalam Gambar) -->
         <div class="mt-6 border-t pt-4 flex flex-col gap-3">
-            <p class="text-xs text-gray-500 text-center">Klik pada tanggal di atas untuk me-highlight jadwal les.</p>
+            <p class="text-xs text-gray-500 text-center">Klik tanggal untuk highlight. **Tahan klik (long-press)** untuk pilih warna lain.</p>
 
             <button onclick="shareToWhatsApp()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200">
                 <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -81,54 +81,202 @@
     </div>
 
     <script>
+        /**
+         * =========================================================================
+         * DOKUMENTASI & DESAIN KONSEP UI/UX COLOR PICKER TANGGAL
+         * =========================================================================
+         * 1. UX Interaksi Berlapis (Layered Interaction):
+         *    - Klik Singkat (<500ms): Berfungsi sebagai toggle cepat warna bawaan/default (Emerald).
+         *    - Klik Tahan / Long-Press (>=500ms): Mengidentifikasi niat pengguna untuk mengustomisasi warna.
+         *      Sistem membatalkan pergerakan klik biasa dan menampilkan Floating Palette (Color Picker).
+         *
+         * 2. UX Aksesibilitas Lintas Perangkat (Cross-Device Readiness):
+         *    - Menggunakan kombinasi Mouse Event (`mousedown`, `mouseup`, `mouseleave`) untuk PC/Laptop 
+         *      dan Touch Event (`touchstart`, `touchend`, `touchcancel`) untuk perangkat Mobile/HP.
+         * 
+         * 3. UI Micro-Interaction & Positioning Architecture:
+         *    - Pembungkus tanggal diberi `position: relative`, sementara Pop-up Picker diberi `position: absolute`.
+         *      Teknik positioning `-top-12 left-1/2 -translate-x-1/2` menaruh pop-up melayang pas di atas tanggal 
+         *      tanpa mengganggu layout grid kalender di sekitarnya.
+         *    - Efek visual animasi dibuat menggunakan CSS Transition (`opacity-0 scale-95` ke `opacity-100 scale-100`) 
+         *      sehingga pop-up timbul secara halus (smooth pop-in effect).
+         * =========================================================================
+         */
+
         const date = new Date();
         const currentYear = date.getFullYear();
-        const currentMonth = date.getMonth(); // 0-indexed (0 = Jan, 8 = Sep)
+        const currentMonth = date.getMonth();
 
         const monthNames = [
             "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
             "Juli", "Agustus", "September", "Oktober", "November", "Desember"
         ];
 
-        // Set Judul Bulan & Tahun
         document.getElementById("month-year-title").innerText = `${monthNames[currentMonth]} ${currentYear}`;
-
         const calendarDaysContainer = document.getElementById("calendar-days");
 
-        // Dapatkan hari pertama dari bulan ini (0 = Minggu, 1 = Senin, dst)
         const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
-
-        // Dapatkan jumlah total hari di bulan ini
         const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-        // Render tanggal kosong sebelum tanggal 1
+        // Variabel penampung state Pop-up & Timer Long Press
+        let activePicker = null;       // Menyimpan referensi elemen pop-up yang sedang terbuka
+        let pressTimer = null;         // Timer penentu durasi klik tahan
+        let isLongPress = false;       // Flag pencegah `onclick` jika aksi adalah long-press
+
+        // Daftar kelas warna highlighter Tailwind
+        const highlightColors = ["bg-emerald-200", "bg-yellow-200", "bg-rose-200", "bg-sky-200"];
+
+        // Render cell kosong sebelum tanggal 1
         for (let x = 0; x < firstDayIndex; x++) {
             const emptyDiv = document.createElement("div");
             calendarDaysContainer.appendChild(emptyDiv);
         }
 
-        // Render tanggal 1 s/d selesai
+        // Render Tanggal 1 s/d Selesai
         for (let day = 1; day <= totalDays; day++) {
+            // Container utama per tanggal: Menyediakan kerangka posisi 'relative' untuk pop-up picker
             const dayDiv = document.createElement("div");
-            dayDiv.className = "flex items-center justify-center h-9 w-9 mx-auto rounded-full cursor-pointer hover:bg-gray-100 transition";
+            dayDiv.className = "relative flex items-center justify-center h-9 w-9 mx-auto rounded-full cursor-pointer hover:bg-gray-100 transition select-none";
             dayDiv.innerText = day;
+
+            // Template UI Pop-up Mini Color Picker (Melayang di atas cell tanggal)
+            const pickerDiv = document.createElement("div");
+            pickerDiv.className = "hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-20 transition-all duration-150 transform scale-95 opacity-0";
             
-            // Toggle highlight saat tanggal diklik
-            dayDiv.onclick = function() {
-                if (dayDiv.classList.contains("bg-emerald-200")) {
-                    dayDiv.classList.remove("bg-emerald-200", "text-gray", "font-bold");
-                    dayDiv.classList.add("hover:bg-gray-100");
-                } else {
-                    dayDiv.classList.add("bg-emerald-200", "text-gray", "font-bold");
-                    dayDiv.classList.remove("hover:bg-gray-100");
+            // Pilihan warna swatch
+            const colors = [
+                { bg: "bg-emerald-200", dot: "bg-emerald-400" },
+                { bg: "bg-yellow-200", dot: "bg-yellow-400" },
+                { bg: "bg-rose-200", dot: "bg-rose-400" },
+                { bg: "bg-sky-200", dot: "bg-sky-400" }
+            ];
+
+            // Render opsi lingkaran warna di dalam pop-up
+            colors.forEach(c => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = `w-5 h-5 rounded-full ${c.dot} hover:scale-125 transition-transform duration-100 focus:outline-none`;
+                
+                // UX Event Handshake: Klik tombol warna memilih warna tersebut
+                btn.onclick = function(e) {
+                    e.stopPropagation(); // Mencegah klik menembus ke elemen tanggal di bawahnya
+                    applyHighlight(dayDiv, c.bg);
+                    closePicker();
+                };
+                pickerDiv.appendChild(btn);
+            });
+
+            dayDiv.appendChild(pickerDiv);
+
+            // -----------------------------------------------------------------
+            // LOGIKA & EVENT HANDLING (LONG PRESS & KLIK BIASA)
+            // -----------------------------------------------------------------
+
+            // Fungsi memulai perhitungan detik tahanan
+            function startPress(e) {
+                isLongPress = false;
+                pressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    openPicker(pickerDiv);
+                }, 500); // Tahan selama 500ms (0.5 detik) untuk membuka pop-up
+            }
+
+            // Fungsi membatalkan timer jika tombol dilepas sebelum 500ms
+            function cancelPress() {
+                clearTimeout(pressTimer);
+            }
+
+            // Pasang event listener untuk menangkap gestur tekan (Desktop + Mobile)
+            dayDiv.addEventListener("mousedown", startPress);
+            dayDiv.addEventListener("touchstart", startPress, { passive: true });
+
+            dayDiv.addEventListener("mouseup", cancelPress);
+            dayDiv.addEventListener("mouseleave", cancelPress);
+            dayDiv.addEventListener("touchend", cancelPress);
+            dayDiv.addEventListener("touchcancel", cancelPress);
+
+            // Eksekusi Klik Standar (Quick Toggle Warna Default Emerald)
+            dayDiv.onclick = function(e) {
+                // Abaikan klik jika bersumber dari dalam Pop-up Picker
+                if (e.target.closest(".shadow-xl")) return;
+
+                // Abaikan klik jika aksi sebelumnya adalah Long-Press
+                if (isLongPress) {
+                    isLongPress = false;
+                    return;
                 }
+
+                closePicker();
+                // Jalankan toggle standar (emerald-200)
+                applyHighlight(dayDiv, "bg-emerald-200");
             };
 
             calendarDaysContainer.appendChild(dayDiv);
         }
 
-        // Fungsi Download Gambar Kalender
+        /**
+         * FUNGSI KELOLA HIGHLIGHT TANGGAL
+         * Mengatur kelas visual Tailwind untuk tanggal yang di-highlight.
+         */
+        function applyHighlight(element, targetColorClass) {
+            // Cari warna aktif saat ini pada elemen tanggal
+            const currentColor = highlightColors.find(color => element.classList.contains(color));
+
+            if (currentColor === targetColorClass) {
+                // Jika warna yang diklik sama dengan warna aktif -> Hapus Highlight (Reset)
+                element.classList.remove(currentColor, "text-gray-900", "font-bold");
+                element.classList.add("hover:bg-gray-100");
+            } else {
+                // Jika warna berbeda -> Ganti dengan warna baru & pertahankan font-bold
+                element.classList.remove(...highlightColors, "hover:bg-gray-100");
+                element.classList.add(targetColorClass, "text-gray-900", "font-bold");
+            }
+        }
+
+        /**
+         * FUNGSI ANIMAIS POP-UP PICKER (OPEN / CLOSE)
+         * Mengontrol transisi visual masuk dan keluar pop-up.
+         */
+        function openPicker(pickerEl) {
+            if (activePicker && activePicker !== pickerEl) {
+                closePicker(); // Sembunyikan picker lain jika ada yang terbuka
+            }
+
+            activePicker = pickerEl;
+            pickerEl.classList.remove("hidden");
+            // Timeout tipis untuk memberikan kesempatan DOM menyadari perubahaan class sebelum animasi CSS berjalan
+            setTimeout(() => {
+                pickerEl.classList.remove("scale-95", "opacity-0");
+                pickerEl.classList.add("scale-100", "opacity-100");
+            }, 10);
+        }
+
+        function closePicker() {
+            if (!activePicker) return;
+            const pickerEl = activePicker;
+            pickerEl.classList.remove("scale-100", "opacity-100");
+            pickerEl.classList.add("scale-95", "opacity-0");
+            
+            setTimeout(() => {
+                pickerEl.classList.add("hidden");
+            }, 150); // Sesuaikan durasi timeout dengan durasi transisi CSS (150ms)
+            
+            activePicker = null;
+        }
+
+        // UX Helper: Tutup pop-up jika pengguna mengetuk area kosong mana saja di luar kalender
+        document.addEventListener("click", function(e) {
+            if (activePicker && !e.target.closest(".relative")) {
+                closePicker();
+            }
+        });
+
+        // -----------------------------------------------------------------
+        // FUNGSI EKSPOR & SHARE KALENDER
+        // -----------------------------------------------------------------
+
         function downloadCalendar() {
+            closePicker(); // Pastikan pop-up tidak ikut terfoto saat ekspor gambar
             const card = document.getElementById("calendar-card");
             html2canvas(card, { scale: 2 }).then(canvas => {
                 const link = document.createElement('a');
@@ -138,15 +286,14 @@
             });
         }
 
-        // Fungsi Share ke WhatsApp (Mendukung Share File di Mobile & Link Web di Desktop)
         async function shareToWhatsApp() {
+            closePicker(); // Pastikan pop-up tidak ikut terfoto saat ekspor gambar
             const card = document.getElementById("calendar-card");
             
             const canvas = await html2canvas(card, { scale: 2 });
             canvas.toBlob(async (blob) => {
                 const file = new File([blob], `Jadwal_Les_${monthNames[currentMonth]}.png`, { type: 'image/png' });
 
-                // Jika Browser HP mendukung Web Share API untuk Berkas
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({
@@ -158,7 +305,6 @@
                         console.log("Share dibatalkan/gagal", err);
                     }
                 } else {
-                    // Fallback untuk Browser Laptop/Desktop (Membuka WA Web)
                     downloadCalendar();
                     const text = encodeURIComponent(`Halo, berikut jadwal pertemuan les untuk bulan ${monthNames[currentMonth]} ${currentYear}.\n\n*(Gambar kalender telah ter-download otomatis, silakan lampirkan gambar tersebut di pesan ini)*`);
                     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
