@@ -65,28 +65,31 @@
 -->
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <!-- CARD CONTAINER UTAMA:
-         w-full max-w-md : Lebar penuh di HP, namun dibatasi maksimal 28rem (448px) di layar lebar
-         bg-white rounded-2xl : Latar putih dengan sudut melengkung besar (1rem)
-         shadow-lg : Bayangan lembut di belakang kartu
-         p-6 border border-gray-100 : Padding 24px dan garis tepi tipis berwarna abu terang
-    -->
+    <!-- CARD CONTAINER UTAMA -->
     <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
         
         <!-- TARGET CAPTURE (Area yang dipotret oleh html2canvas) -->
         <div id="calendar-card" class="bg-white p-4 rounded-xl">
-            <!-- Judul Bulan & Tahun (diisi dinamis oleh JS) -->
-            <h2 id="month-year-title" class="text-xl font-bold text-gray-800 mb-6"></h2>
+            
+            <!-- HEADER JUDUL BULAN & NAVIGASI PANAH PREV/NEXT -->
+            <div class="flex items-center justify-between mb-6">
+                <button id="btn-prev-month" type="button" title="Bulan Sebelumnya" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600 transition-colors active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                
+                <h2 id="month-year-title" class="text-xl font-bold text-gray-800"></h2>
+                
+                <button id="btn-next-month" type="button" title="Bulan Berikutnya" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600 transition-colors active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+            </div>
 
             <!-- HEADER NAMA HARI (Grid 7 Kolom) -->
-            <!-- grid grid-cols-7 : Membagi baris menjadi 7 kolom sejajar
-                 justify-items-center : Memposisikan teks hari tepat di tengah tiap kolom
-            -->
             <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4 justify-items-center">
-                <!-- TAILWIND BREAKPOINT (sm:):
-                     <span class="sm:hidden"> : Tampil di HP (layar kecil), tersembunyi di layar >640px
-                     <span class="hidden sm:block"> : Tersembunyi di HP, tampil di layar >640px
-                -->
                 <div><span class="sm:hidden">Min</span><span class="hidden sm:block">Minggu</span></div>
                 <div><span class="sm:hidden">Sen</span><span class="hidden sm:block">Senin</span></div>
                 <div><span class="sm:hidden">Sel</span><span class="hidden sm:block">Selasa</span></div>
@@ -96,37 +99,28 @@
                 <div><span class="sm:hidden">Sab</span><span class="hidden sm:block">Sabtu</span></div>
             </div>
 
-            <!-- CONTAINER DATES: Wadah tempat angka tanggal di-render via Javascript -->
+            <!-- CONTAINER DATES: Tempat angka tanggal di-render via Javascript -->
             <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center">
             </div>
         </div>
 
         <!-- FOOTER / KONTROL AKSES (Dropdown & Tombol Share) -->
         <div class="mt-6 border-t border-gray-100 pt-4 flex flex-col gap-3">
-            
             <div class="flex w-full items-center gap-2 relative">
                 
                 <!-- CUSTOM DROPDOWN CONTAINER (80% Lebar Area) -->
                 <div class="w-[80%] relative">
-                    <!-- Tombol Pemicu Dropdown -->
                     <button id="custom-dropdown-btn" type="button" class="w-full bg-gray-100/80 hover:bg-gray-200/80 text-gray-800 font-semibold py-2.5 px-3.5 rounded-xl text-sm flex items-center justify-between transition-all duration-200 border border-transparent focus:border-gray-300 focus:bg-white focus:shadow-sm">
                         <span id="dropdown-label" class="truncate">Zafi</span>
-                        <!-- Panah Dropdown SVG -->
                         <svg id="dropdown-arrow" class="w-4 h-4 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </button>
 
-                    <!-- Menu Pilihan Melayang (Floating Options Dropdown)
-                         backdrop-blur-md : Efek kaca buram (glassmorphism)
-                         z-50 : Memastikan menu melayang di atas elemen lainnya
-                         origin-bottom : Animasi zoom/scale dimulai dari bagian bawah
-                    -->
                     <div id="custom-dropdown-menu" class="hidden absolute left-0 right-0 bottom-full mb-2 bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-xl p-1.5 z-50 transition-all duration-200 opacity-0 scale-95 transform origin-bottom">
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-1.5">Nama Murid</div>
                         <ul id="student-list-options" class="flex flex-col gap-0.5">
-                            <!-- Custom Attribute (data-value): Menyimpan data internal yang bisa dibaca JS via opt.dataset.value -->
-                             <li data-value="Arka" class="student-option px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between transition-colors">
+                            <li data-value="Arka" class="student-option px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between transition-colors">
                                 <span>Arka</span>
                                 <svg class="check-icon w-4 h-4 text-gray-800 hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
                             </li>
@@ -142,9 +136,7 @@
                     </div>
                 </div>
 
-                <!-- TOMBOL BAGIKAN / SALIN (20% Lebar Area)
-                     active:scale-95 : Animasi 'mengecil sebentar' saat tombol ditekan (umpan balik visual)
-                -->
+                <!-- TOMBOL BAGIKAN / SALIN (20% Lebar Area) -->
                 <button id="btn-copy" title="Bagikan / Salin Gambar" class="w-[20%] h-[42px] bg-gray-100/80 hover:bg-gray-200/80 text-gray-700 font-semibold rounded-xl flex items-center justify-center transition duration-200 active:scale-95">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -154,101 +146,112 @@
         </div>
     </div>
 
-    <!-- NOTIFIKASI TOAST (Melayang di bawah layar)
-         fixed bottom-5 left-1/2 -translate-x-1/2 : Posisikan persis di tengah bawah layar
-         pointer-events-none : Agar toast tidak menghalangi sentuhan jika sedang tidak aktif
-    -->
+    <!-- NOTIFIKASI TOAST -->
     <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none z-50 flex items-center gap-2">
         <span>Memproses gambar...</span>
     </div>
 
     <!-- ====================================================================
-         SCRIPT 1 (SINKRONUS): RENDER GRID KALENDER
-         Scope: Eksekusi langsung saat file dimuat.
-         Risiko Perubahan: Mengubah nama variabel global (window.dayElements)
-         bisa merusak Script 2 yang bergantung pada objek ini!
+         SCRIPT 1 (SINKRONUS): RENDER DYNAMIC GRID KALENDER
          ==================================================================== -->
     <script>
-        /* VARIABEL GLOBAL SINKRONUS */
         const date = new Date();
-        const currentYear = date.getFullYear(); // Mengambil tahun saat ini (4 digit)
-        const currentMonth = date.getMonth();   // Mengambil indeks bulan saat ini (0 - 11)
+        window.currentYear = date.getFullYear();
+        window.currentMonth = date.getMonth();
 
         const monthNames = [
             "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
             "Juli", "Agustus", "September", "Oktober", "November", "Desember"
         ];
 
-        // Set judul Kalender
-        document.getElementById("month-year-title").innerText = `${monthNames[currentMonth]} ${currentYear}`;
-        const calendarDaysContainer = document.getElementById("calendar-days");
-
-        // Menghitung hari pertama dalam bulan (0=Minggu, 1=Senin, ...) untuk offset grid
-        const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
-        // Menghitung jumlah total hari dalam bulan ini (misal 30 atau 31)
-        const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-        /* SCOPE GLOBAL OBJECT: Membuka variabel ini ke window agar bisa dibaca oleh Script Module Firebase */
-        window.dayElements = {};
-
-        // 1. Render Kotak Kosong (Offset) sebelum tanggal 1
-        for (let x = 0; x < firstDayIndex; x++) {
-            const emptyDiv = document.createElement("div");
-            emptyDiv.className = "w-9 h-9";
-            calendarDaysContainer.appendChild(emptyDiv);
-        }
-
-        // 2. Render Angka Tanggal Beserta Objek SVG-nya
-        for (let day = 1; day <= totalDays; day++) {
+        // Helper membuat SVG angka tanggal
+        function createDaySvg(dayNumber, isCurrentMonth = true) {
             const dayWrapper = document.createElement("div");
-            dayWrapper.className = "day-container cursor-pointer select-none";
+            
+            if (isCurrentMonth) {
+                dayWrapper.className = "day-container cursor-pointer select-none relative";
+            } else {
+                dayWrapper.className = "day-container select-none opacity-25 pointer-events-none";
+            }
 
-            // Membuat Elemen SVG secara Dinamis (Aturan Khusus: Wajib memakai namespace SVG)
             const svgNS = "http://www.w3.org/2000/svg";
             const svg = document.createElementNS(svgNS, "svg");
             svg.setAttribute("viewBox", "0 0 36 36");
             svg.setAttribute("class", "day-svg");
 
-            // Element Lingkaran Highlight
             const circle = document.createElementNS(svgNS, "circle");
             circle.setAttribute("cx", "18");
             circle.setAttribute("cy", "18");
             circle.setAttribute("r", "17");
-            circle.setAttribute("fill", "transparent"); // Default bening/transparan
+            circle.setAttribute("fill", "transparent");
             circle.setAttribute("class", "transition-colors duration-150");
 
-            // Element Teks Angka
             const text = document.createElementNS(svgNS, "text");
             text.setAttribute("x", "18");
-            text.setAttribute("y", "23"); // Penyesuaian posisi vertikal teks angka agar pas di tengah
-            text.setAttribute("text-anchor", "middle"); // Center alignment SVG
+            text.setAttribute("y", "23");
+            text.setAttribute("text-anchor", "middle");
             text.setAttribute("font-size", "14");
-            text.setAttribute("font-weight", "500");
+            text.setAttribute("font-weight", isCurrentMonth ? "500" : "400");
             text.setAttribute("fill", "#1f2937");
-            text.textContent = day;
+            text.textContent = dayNumber;
 
             svg.appendChild(circle);
             svg.appendChild(text);
             dayWrapper.appendChild(svg);
 
-            /* MENYIMPAN REFERENSI ELEMEN KE MEMORI GLOBAL
-               Tujuannya agar saat update data, JS tidak perlu melakukan query DOM berulang-ulang */
-            window.dayElements[day] = { circle, text, wrapper: dayWrapper };
-            calendarDaysContainer.appendChild(dayWrapper);
+            return { dayWrapper, circle, text };
         }
+
+        // Fungsi Global Render Grid
+        window.renderCalendarGrid = function(year, month) {
+            document.getElementById("month-year-title").innerText = `${monthNames[month]} ${year}`;
+            const calendarDaysContainer = document.getElementById("calendar-days");
+            calendarDaysContainer.innerHTML = ""; 
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            const prevLastDay = new Date(year, month, 0).getDate();
+
+            window.dayElements = {};
+            window.totalDaysInMonth = totalDays;
+
+            // 1. Tanggal Bulan Lalu (Pudar)
+            for (let x = firstDayIndex; x > 0; x--) {
+                const prevDayNum = prevLastDay - x + 1;
+                const { dayWrapper } = createDaySvg(prevDayNum, false);
+                calendarDaysContainer.appendChild(dayWrapper);
+            }
+
+            // 2. Tanggal Bulan Ini (Aktif)
+            for (let day = 1; day <= totalDays; day++) {
+                const { dayWrapper, circle, text } = createDaySvg(day, true);
+                window.dayElements[day] = { circle, text, wrapper: dayWrapper };
+                calendarDaysContainer.appendChild(dayWrapper);
+            }
+
+            // 3. Tanggal Bulan Depan (Pudar)
+            const totalRenderedSoFar = firstDayIndex + totalDays;
+            const totalGridCells = totalRenderedSoFar > 35 ? 42 : 35; 
+            const nextDaysCount = totalGridCells - totalRenderedSoFar;
+
+            for (let j = 1; j <= nextDaysCount; j++) {
+                const { dayWrapper } = createDaySvg(j, false);
+                calendarDaysContainer.appendChild(dayWrapper);
+            }
+        };
+
+        // Render awal
+        window.renderCalendarGrid(window.currentYear, window.currentMonth);
     </script>
 
     <!-- ====================================================================
-         SCRIPT 2 (MODULE): FIREBASE SYNC, EVENT LOGIC, & CANVAS SHARE
-         Scope: Isolat/Tertutup (type="module"). Variabel di sini bersifat lokal
-         dan tidak bocor ke window utama kecuali di-assign ke window secara eksplisit.
+         SCRIPT 2 (MODULE): FIREBASE REALTIME SYNC, EVENT HANDLER, & EXPORT
          ==================================================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Konfigurasi Firebase Project
         const firebaseConfig = {
             apiKey: "AIzaSyBs2RwkyPaIugpdFSpYWRnZK0Ry1j0OLek",
             authDomain: "share-recap.firebaseapp.com",
@@ -263,15 +266,14 @@
         const analytics = getAnalytics(app);
         const db = getFirestore(app);
 
-        /* PETA WARNA (COLOR MAP): Menghubungkan Kunci Nama Warna dengan Kode Hex CSS */
         const colorMap = {
-            "emerald": "#a7f3d0", // Hijau muda
-            "yellow":  "#fef08a", // Kuning muda
-            "rose":    "#fecdd3", // Merah muda/Pink
-            "sky":     "#bae6fd"  // Biru muda
+            "emerald": "#a7f3d0",
+            "yellow":  "#fef08a",
+            "rose":    "#fecdd3",
+            "sky":     "#bae6fd"
         };
 
-        // --- MANAJEMEN CUSTOM DROPDOWN ---
+        // --- CUSTOM DROPDOWN ---
         const dropdownBtn = document.getElementById("custom-dropdown-btn");
         const dropdownMenu = document.getElementById("custom-dropdown-menu");
         const dropdownArrow = document.getElementById("dropdown-arrow");
@@ -280,14 +282,10 @@
 
         let currentSelectedStudent = "Zafi";
 
-        /* FUNGSI: Menampilkan/Sembunyikan Dropdown Custom
-           Scope: Lokal Module.
-           Risiko: Sangat aman diubah, tetapi pastikan transisi CSS opacity/scale terkoordinasi dengan baik. */
         function toggleDropdown() {
             const isHidden = dropdownMenu.classList.contains("hidden");
             if (isHidden) {
                 dropdownMenu.classList.remove("hidden");
-                // Timeout singkat diperlukan agar browser menyadari perubahan status 'display' sebelum memutar animasi opacity/transform
                 setTimeout(() => {
                     dropdownMenu.classList.remove("opacity-0", "scale-95");
                     dropdownMenu.classList.add("opacity-100", "scale-100");
@@ -308,18 +306,16 @@
         }
 
         dropdownBtn.addEventListener("click", (e) => {
-            e.stopPropagation(); // Cegah event klik merembet ke 'document' (yang akan langsung menutupnya kembali)
+            e.stopPropagation();
             toggleDropdown();
         });
 
-        // Klik di mana saja di luar dropdown akan otomatis menutup menu dropdown
         document.addEventListener("click", (e) => {
             if (!dropdownMenu.contains(e.target) && !dropdownBtn.contains(e.target)) {
                 closeDropdown();
             }
         });
 
-        /* FUNGSI: Memperbarui UI Dropdown sesuai Murid terpilih */
         function updateDropdownUI(val) {
             currentSelectedStudent = val;
             dropdownLabel.innerText = val;
@@ -336,17 +332,15 @@
             });
         }
 
-        // Listener klik untuk pilihan murid
         studentOptions.forEach(opt => {
             opt.addEventListener("click", () => {
                 const selectedVal = opt.dataset.value;
                 updateDropdownUI(selectedVal);
                 closeDropdown();
-                subscribeToStudentSchedule(); // Pemicu pemuatan ulang data dari Firebase
+                subscribeToStudentSchedule();
             });
         });
 
-        // AMBIL MEMORI TERAKHIR (localStorage): Membaca pilihan murid terakhir yang tersimpan di browser
         const lastStudent = localStorage.getItem("last_selected_student");
         if (lastStudent && Array.from(studentOptions).some(o => o.dataset.value === lastStudent)) {
             updateDropdownUI(lastStudent);
@@ -354,156 +348,149 @@
             updateDropdownUI("Zafi");
         }
 
-        // --- SINKRONISASI REALTIME FIRESTORE ---
+        // --- REALTIME FIRESTORE SYNC ---
         let scheduleData = {};
         let unsubscribeSnapshot = null;
 
-        /* FUNGSI: Menghubungkan ke database Firebase secara realtime (Listener)
-           Scope: Lokal Module.
-           Risiko Tinggi: Jika fungsi unsubscribeSnapshot() tidak dipanggil sebelum membuat listener baru,
-           akan terjadi "Memory Leak" dan Firebase akan dipanggil berkali-kali secara membabi buta! */
         function subscribeToStudentSchedule() {
-            // Hentikan penyeleksian data murid sebelumnya jika ada
             if (unsubscribeSnapshot) unsubscribeSnapshot();
 
-            // Simpan nama murid terpilih ke memori browser
             localStorage.setItem("last_selected_student", currentSelectedStudent);
 
-            // Format ID Dokumen Database: Contoh "2026-9_Zafi"
-            const docId = `${currentYear}-${currentMonth + 1}_${currentSelectedStudent}`;
+            // Menyesuaikan ID Dokumen dengan bulan & tahun yang aktif di layar
+            const docId = `${window.currentYear}-${window.currentMonth + 1}_${currentSelectedStudent}`;
             const scheduleDocRef = doc(db, "les_schedules", docId);
 
-            // Listener Realtime (onSnapshot): Eksekusi otomatis setiap kali data di server berubah
             unsubscribeSnapshot = onSnapshot(scheduleDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     scheduleData = docSnap.data();
                 } else {
                     scheduleData = {};
                 }
-                renderAllHighlights(); // Warnai ulang kalender
+                renderAllHighlights();
             });
         }
 
-        subscribeToStudentSchedule(); // Jalankan saat aplikasi dibuka pertama kali
-
-        // --- KONTROL EVENT TOUCH / MOUSE & COLOR PICKER ---
+        // --- EVENT ATTACHMENT TANGGAL & COLOR PICKER ---
         let activePicker = null;
         let pressTimer = null;
         let isLongPress = false;
 
-        for (let day = 1; day <= totalDays; day++) {
-            // Mengambil elemen yang sudah di-render oleh Script 1
-            const { circle, wrapper: dayWrapper } = window.dayElements[day];
+        function attachDayEventListeners() {
+            for (let day = 1; day <= window.totalDaysInMonth; day++) {
+                if (!window.dayElements[day]) continue;
+                const { circle, wrapper: dayWrapper } = window.dayElements[day];
 
-            // 1. Buat Komponen Pop-up Color Picker Dinamis
-            const pickerDiv = document.createElement("div");
-            pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-40 transition-all duration-150 transform scale-95 opacity-0";
+                const pickerDiv = document.createElement("div");
+                pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-40 transition-all duration-150 transform scale-95 opacity-0";
 
-            // Menghentikan perambatan event sentuhan agar tidak memicu event bawaan layar HP
-            const preventBubble = (e) => e.stopPropagation();
-            pickerDiv.addEventListener("touchstart", preventBubble, { passive: true });
-            pickerDiv.addEventListener("touchend", preventBubble, { passive: true });
-            pickerDiv.addEventListener("mousedown", preventBubble);
-            pickerDiv.addEventListener("mouseup", preventBubble);
+                const preventBubble = (e) => e.stopPropagation();
+                pickerDiv.addEventListener("touchstart", preventBubble, { passive: true });
+                pickerDiv.addEventListener("touchend", preventBubble, { passive: true });
+                pickerDiv.addEventListener("mousedown", preventBubble);
+                pickerDiv.addEventListener("mouseup", preventBubble);
 
-            const colors = [
-                { key: "emerald", dot: "bg-emerald-400" },
-                { key: "yellow",  dot: "bg-yellow-400" },
-                { key: "rose",    dot: "bg-rose-400" },
-                { key: "sky",     dot: "bg-sky-400" }
-            ];
+                const colors = [
+                    { key: "emerald", dot: "bg-emerald-400" },
+                    { key: "yellow",  dot: "bg-yellow-400" },
+                    { key: "rose",    dot: "bg-rose-400" },
+                    { key: "sky",     dot: "bg-sky-400" }
+                ];
 
-            // Render Tombol Warna dalam Pop-up
-            colors.forEach(c => {
-                const btn = document.createElement("button");
-                btn.type = "button";
-                btn.className = `color-btn w-5 h-5 rounded-full ${c.dot} hover:scale-125 transition-transform duration-100 focus:outline-none`;
+                colors.forEach(c => {
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = `color-btn w-5 h-5 rounded-full ${c.dot} hover:scale-125 transition-transform duration-100 focus:outline-none`;
 
-                const selectColor = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleHighlightAndSave(day, c.key);
-                    closePicker();
-                };
+                    const selectColor = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleHighlightAndSave(day, c.key);
+                        closePicker();
+                    };
 
-                // Menggunakan pointerdown untuk respon yang fleksibel (Mouse & Sentuhan HP)
-                btn.addEventListener("pointerdown", selectColor);
-                pickerDiv.appendChild(btn);
-            });
+                    btn.addEventListener("pointerdown", selectColor);
+                    pickerDiv.appendChild(btn);
+                });
 
-            dayWrapper.appendChild(pickerDiv);
+                dayWrapper.appendChild(pickerDiv);
 
-            /* DETEKSI TAP VS PRESS & HOLD (Tekan Lama) */
-            function startPress(e) {
-                if (e.target.closest(".pop-picker")) return;
+                function startPress(e) {
+                    if (e.target.closest(".pop-picker")) return;
+                    if (e.cancelable && e.type === "touchstart") e.preventDefault();
+                    isLongPress = false;
+                    cancelPress();
 
-                if (e.cancelable && e.type === "touchstart") {
-                    e.preventDefault(); // Matikan efek konteks menu sentuh default HP
+                    pressTimer = setTimeout(() => {
+                        isLongPress = true;
+                        openPicker(pickerDiv);
+                    }, 400);
                 }
 
-                isLongPress = false;
-                cancelPress();
-
-                // Set Timer 400ms untuk menentukan kategori Tekan Lama (Long Press)
-                pressTimer = setTimeout(() => {
-                    isLongPress = true;
-                    openPicker(pickerDiv); // Buka pemilih warna jika ditahan > 400ms
-                }, 400);
-            }
-
-            function cancelPress() {
-                if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
+                function cancelPress() {
+                    if (pressTimer) {
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                    }
                 }
-            }
 
-            function handleEnd(e) {
-                if (e.target.closest(".pop-picker")) return;
+                function handleEnd(e) {
+                    if (e.target.closest(".pop-picker")) return;
+                    cancelPress();
 
-                cancelPress();
-
-                // Jika dilepas sebelum 400ms, dikategorikan sebagai TAP biasa
-                if (!isLongPress) {
-                    closePicker();
-                    toggleHighlightAndSave(day, "emerald"); // Default warna hijau saat sekali tap
+                    if (!isLongPress) {
+                        closePicker();
+                        toggleHighlightAndSave(day, "emerald");
+                    }
                 }
+
+                dayWrapper.oncontextmenu = (e) => { e.preventDefault(); return false; };
+                dayWrapper.addEventListener("touchstart", startPress, { passive: false });
+                dayWrapper.addEventListener("touchend", handleEnd);
+                dayWrapper.addEventListener("touchcancel", cancelPress);
+                dayWrapper.addEventListener("mousedown", startPress);
+                dayWrapper.addEventListener("mouseup", handleEnd);
+                dayWrapper.addEventListener("mouseleave", cancelPress);
             }
-
-            // Matikan Menu Klik-Kanan Bawaan Browser
-            dayWrapper.oncontextmenu = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            };
-
-            // Event Listener untuk Perangkat Layar Sentuh (Mobile)
-            dayWrapper.addEventListener("touchstart", startPress, { passive: false });
-            dayWrapper.addEventListener("touchend", handleEnd);
-            dayWrapper.addEventListener("touchcancel", cancelPress);
-
-            // Event Listener untuk Perangkat Laptop/Kursor (Desktop)
-            dayWrapper.addEventListener("mousedown", startPress);
-            dayWrapper.addEventListener("mouseup", handleEnd);
-            dayWrapper.addEventListener("mouseleave", cancelPress);
         }
 
-        /* FUNGSI: Mewarnai Ulang Semua Tanggal berdasarkan Objek `scheduleData`
-           Scope: Lokal Module.
-           Risiko: Fungsi ini membaca `window.dayElements`. Jika struktur elemen SVG berubah,
-           properti circle/text akan error (undefined). */
+        // --- NAVIGASI BULAN (PREV / NEXT) ---
+        const btnPrev = document.getElementById("btn-prev-month");
+        const btnNext = document.getElementById("btn-next-month");
+
+        function changeMonth(delta) {
+            window.currentMonth += delta;
+            if (window.currentMonth < 0) {
+                window.currentMonth = 11;
+                window.currentYear--;
+            } else if (window.currentMonth > 11) {
+                window.currentMonth = 0;
+                window.currentYear++;
+            }
+
+            window.renderCalendarGrid(window.currentYear, window.currentMonth);
+            attachDayEventListeners();
+            subscribeToStudentSchedule();
+        }
+
+        btnPrev.addEventListener("click", () => changeMonth(-1));
+        btnNext.addEventListener("click", () => changeMonth(1));
+
+        // Inisialisasi Pertama
+        attachDayEventListeners();
+        subscribeToStudentSchedule();
+
         function renderAllHighlights() {
-            for (let day = 1; day <= totalDays; day++) {
+            for (let day = 1; day <= window.totalDaysInMonth; day++) {
+                if (!window.dayElements[day]) continue;
                 const { circle, text } = window.dayElements[day];
                 const colorKey = scheduleData[day];
 
                 if (colorKey && colorMap[colorKey]) {
-                    // Beri warna latar lingkaran SVG & pertebal teks angka
                     circle.setAttribute("fill", colorMap[colorKey]);
                     text.setAttribute("font-weight", "700");
                     text.setAttribute("fill", "#111827");
                 } else {
-                    // Reset ke transparan (tanpa warna)
                     circle.setAttribute("fill", "transparent");
                     text.setAttribute("font-weight", "500");
                     text.setAttribute("fill", "#1f2937");
@@ -511,16 +498,12 @@
             }
         }
 
-        /* FUNGSI: Mengubah Warna & Menyimpan Perubahan ke Firebase Firestore
-           Scope: Async Function.
-           Risiko: Mengubah logika di sini berpengaruh langsung pada data yang tersimpan di server cloud! */
         async function toggleHighlightAndSave(day, colorKey) {
-            const docId = `${currentYear}-${currentMonth + 1}_${currentSelectedStudent}`;
+            const docId = `${window.currentYear}-${window.currentMonth + 1}_${currentSelectedStudent}`;
             const scheduleDocRef = doc(db, "les_schedules", docId);
 
             const currentSavedColor = scheduleData[day];
 
-            // Logika Toggle: Jika warna yang ditekan sama dengan warna aktif, HAPUS highlight
             if (currentSavedColor === colorKey) {
                 delete scheduleData[day];
             } else {
@@ -528,7 +511,6 @@
             }
 
             try {
-                // Simpan/Timpa dokumen di Firestore
                 await setDoc(scheduleDocRef, scheduleData);
             } catch (err) {
                 console.error("Gagal menyimpan ke Firestore:", err);
@@ -538,7 +520,6 @@
 
         function openPicker(pickerEl) {
             if (activePicker && activePicker !== pickerEl) closePicker();
-
             activePicker = pickerEl;
             pickerEl.classList.remove("hidden");
             setTimeout(() => {
@@ -560,29 +541,24 @@
             activePicker = null;
         }
 
-        // Klik di luar area tanggal akan menutup Pop-up pemilih warna
         document.addEventListener("pointerdown", function(e) {
             if (activePicker && !e.target.closest(".day-container")) {
                 closePicker();
             }
         });
 
-        /* FUNGSI KOSTUMIZASI GENERATE CANVAS (html2canvas)
-           Fungsi khusus untuk meng-clone area kartu, membersihkan elemen pop-picker yang menggantung,
-           lalu mengubahnya menjadi objek Canvas resolusi tinggi (scale: 2). */
+        // --- CANVAS SHARE / COPY ---
         function generateCalendarCanvas() {
             closePicker();
             closeDropdown();
             const card = document.getElementById("calendar-card");
 
             return html2canvas(card, { 
-                scale: 2,               // Membuat tangkapan gambar 2x lebih tajam (Retina Ready)
-                useCORS: true,          // Mengizinkan pemuatan resource/font external
-                logging: false,         // Matikan log console html2canvas
+                scale: 2,
+                useCORS: true,
+                logging: false,
                 backgroundColor: "#ffffff",
-                /* onclone: Callback manipulasi DOM bayangan (kloning) sebelum gambar diambil */
                 onclone: (clonedDoc) => {
-                    // Bersihkan pop-up pemilih warna dari hasil foto gambar
                     const pickers = clonedDoc.querySelectorAll(".pop-picker");
                     pickers.forEach(el => el.remove());
 
@@ -594,7 +570,6 @@
             });
         }
 
-        /* FUNGSI NOTIFIKASI TOAST PELEPASAN EFESEN */
         function showToast(message) {
             const toast = document.getElementById("toast");
             toast.querySelector("span").innerText = message;
@@ -608,17 +583,12 @@
             }, 2000);
         }
 
-        /* HELPER ASYNCHRONOUS: Konversi Objek HTML Canvas menjadi File Blob Gambar */
         function canvasToBlobAsync(canvas, type = 'image/png') {
             return new Promise((resolve) => {
                 canvas.toBlob((blob) => resolve(blob), type);
             });
         }
 
-        /* FUNGSI UTAMA SHARING / SALIN GAMBAR KALENDER
-           Scope: Async Function.
-           Risiko Tinggi: Mengatur alur logika bercabang berdasarkan jenis Perangkat (HP vs Laptop).
-           Hati-hati mengubah syarat deteksi User Agent agar fitur Copy/Share tidak salah sasaran. */
         async function copyCalendarToClipboard() {
             showToast("Memproses gambar...");
 
@@ -628,26 +598,21 @@
 
                 if (!blob) throw new Error("Gagal membuat Blob dari gambar.");
 
-                const fileName = `Rekap_${currentSelectedStudent}_${monthNames[currentMonth]}_${currentYear}.png`;
+                const fileName = `Rekap_${currentSelectedStudent}_${monthNames[window.currentMonth]}_${window.currentYear}.png`;
                 const file = new File([blob], fileName, { type: 'image/png' });
 
-                // Deteksi Perangkat HP/Mobile via RegEx User Agent
                 const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-                // ALUR 1. KHUSUS HANDPHONE (MOBILE): Menggunakan Web Share API
                 if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file] // Mengirimkan file gambar langsung ke aplikasi seperti WhatsApp/Telegram
-                    });
+                    await navigator.share({ files: [file] });
                     showToast("Berhasil dibagikan!");
                     return;
                 }
 
-                // ALUR 2. KHUSUS LAPTOP / DESKTOP: Menggunakan Async Clipboard API
                 if (navigator.clipboard && window.ClipboardItem) {
                     try {
                         const item = new ClipboardItem({ [blob.type]: blob });
-                        await navigator.clipboard.write([item]); // Menyalin gambar langsung ke Clipboard OS
+                        await navigator.clipboard.write([item]);
                         showToast("Gambar berhasil disalin!");
                         return;
                     } catch (clipboardErr) {
@@ -655,7 +620,6 @@
                     }
                 }
 
-                // ALUR 3. FALLBACK TERAKHIR: Auto Download File jika API modern tidak didukung browser
                 const downloadUrl = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.download = fileName;
@@ -675,7 +639,6 @@
             }
         }
 
-        // Listener Tombol Bagikan / Salin Gambar
         document.getElementById("btn-copy").addEventListener("click", copyCalendarToClipboard);
     </script>
 </body>
