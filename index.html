@@ -100,8 +100,8 @@
                 <div><span class="sm:hidden">Sab</span><span class="hidden sm:block">Sabtu</span></div>
             </div>
 
-            <!-- CONTAINER DATES: Tempat angka tanggal di-render via Javascript -->
-            <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center">
+            <!-- CONTAINER DATES: Ditambahkan animasi transisi smooth (transition-all duration-300 ease-in-out) -->
+            <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center transition-all duration-300 ease-in-out overflow-hidden">
             </div>
         </div>
 
@@ -153,7 +153,7 @@
     </div>
 
     <!-- ====================================================================
-         SCRIPT 1 (SINKRONUS): RENDER DYNAMIC GRID KALENDER (STANDAR 5 BARIS)
+         SCRIPT 1 (SINKRONUS): RENDER DYNAMIC GRID KALENDER
          ==================================================================== -->
     <script>
         const date = new Date();
@@ -165,10 +165,10 @@
             "Juli", "Agustus", "September", "Oktober", "November", "Desember"
         ];
 
-        // Helper membuat SVG angka tanggal
+        // Helper membuat SVG angka tanggal dengan animasi fade-in halus
         function createDaySvg(dayNumber, isCurrentMonth = true, cellKey = "") {
             const dayWrapper = document.createElement("div");
-            dayWrapper.className = "day-container cursor-pointer select-none relative transition-all duration-150";
+            dayWrapper.className = "day-container cursor-pointer select-none relative transition-all duration-300 ease-in-out transform";
 
             const svgNS = "http://www.w3.org/2000/svg";
             const svg = document.createElementNS(svgNS, "svg");
@@ -198,7 +198,7 @@
             return { dayWrapper, circle, text, isCurrentMonth };
         }
 
-        // Fungsi Global Render Grid (Standar 5 Baris / 35 Sel)
+        // Fungsi Global Render Grid (Dengan penanganan Smooth Height Transition)
         window.renderCalendarGrid = function(year, month) {
             document.getElementById("month-year-title").innerText = `${monthNames[month]} ${year}`;
             const calendarDaysContainer = document.getElementById("calendar-days");
@@ -230,7 +230,7 @@
             // 3. Tanggal Bulan Depan (Offset Kanan)
             const totalRenderedSoFar = firstDayIndex + totalDays;
             
-            // Patokan utama: 35 sel (5 baris). Jika bulan ini butuh lebih dari 35 sel, gunakan 42 sel (6 baris).
+            // Patokan utama: 35 sel (5 baris). Jika butuh lebih, gunakan 42 sel (6 baris).
             const targetTotalCells = totalRenderedSoFar > 35 ? 42 : 35;
             const nextDaysCount = targetTotalCells - totalRenderedSoFar;
 
