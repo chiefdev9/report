@@ -65,25 +65,8 @@
         <span>Gambar berhasil disalin ke clipboard!</span>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBs2RwkyPaIugpdFSpYWRnZK0Ry1j0OLek",
-            authDomain: "share-recap.firebaseapp.com",
-            projectId: "share-recap",
-            storageBucket: "share-recap.firebasestorage.app",
-            messagingSenderId: "1095414789864",
-            appId: "1:1095414789864:web:b7feaf89a346f3aa2f7b5d",
-            measurementId: "G-PEPWBTK71S"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const db = getFirestore(app);
-
+    <!-- SCRIPT SINKRONUS: Render grid kalender secara instan -->
+    <script>
         const date = new Date();
         const currentYear = date.getFullYear();
         const currentMonth = date.getMonth();
@@ -99,19 +82,7 @@
         const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
         const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-        let activePicker = null;
-        let pressTimer = null;
-        let isLongPress = false;
-
-        const colorMap = {
-            "emerald": "#a7f3d0",
-            "yellow":  "#fef08a",
-            "rose":    "#fecdd3",
-            "sky":     "#bae6fd"
-        };
-
-        // Menyimpan referensi elemen tanggal untuk diupdate oleh Firestore real-time listener
-        const dayElements = {};
+        window.dayElements = {};
 
         for (let x = 0; x < firstDayIndex; x++) {
             const emptyDiv = document.createElement("div");
@@ -148,8 +119,45 @@
             svg.appendChild(text);
             dayWrapper.appendChild(svg);
 
-            // Simpan referensi DOM per tanggal
-            dayElements[day] = { circle, text };
+            window.dayElements[day] = { circle, text, wrapper: dayWrapper };
+            calendarDaysContainer.appendChild(dayWrapper);
+        }
+    </script>
+
+    <!-- SCRIPT MODULE: Firebase & Event Listeners -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBs2RwkyPaIugpdFSpYWRnZK0Ry1j0OLek",
+            authDomain: "share-recap.firebaseapp.com",
+            projectId: "share-recap",
+            storageBucket: "share-recap.firebasestorage.app",
+            messagingSenderId: "1095414789864",
+            appId: "1:1095414789864:web:b7feaf89a346f3aa2f7b5d",
+            measurementId: "G-PEPWBTK71S"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+
+        const colorMap = {
+            "emerald": "#a7f3d0",
+            "yellow":  "#fef08a",
+            "rose":    "#fecdd3",
+            "sky":     "#bae6fd"
+        };
+
+        let activePicker = null;
+        let pressTimer = null;
+        let isLongPress = false;
+
+        // Pasang listener interaksi ke elemen yang sudah ter-render sebelumnya
+        for (let day = 1; day <= totalDays; day++) {
+            const { circle, wrapper: dayWrapper } = window.dayElements[day];
 
             dayWrapper.addEventListener("mouseenter", () => {
                 if (circle.getAttribute("fill") === "transparent") {
@@ -187,7 +195,7 @@
 
             dayWrapper.appendChild(pickerDiv);
 
-            function startPress(e) {
+            function startPress() {
                 isLongPress = false;
                 pressTimer = setTimeout(() => {
                     isLongPress = true;
@@ -217,8 +225,6 @@
                 closePicker();
                 toggleHighlightAndSave(day, "emerald");
             };
-
-            calendarDaysContainer.appendChild(dayWrapper);
         }
 
         // =========================================================================
@@ -228,7 +234,6 @@
         const scheduleDocRef = doc(db, "les_schedules", docId);
         let scheduleData = {};
 
-        // 1. Listen perubahan data dari Firestore secara Real-Time
         onSnapshot(scheduleDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 scheduleData = docSnap.data();
@@ -239,10 +244,9 @@
             }
         });
 
-        // 2. Tampilkan warna highlight sesuai data terbaru dari Firestore
         function renderAllHighlights() {
             for (let day = 1; day <= totalDays; day++) {
-                const { circle, text } = dayElements[day];
+                const { circle, text } = window.dayElements[day];
                 const colorKey = scheduleData[day];
 
                 if (colorKey && colorMap[colorKey]) {
@@ -257,7 +261,6 @@
             }
         }
 
-        // 3. Simpan perubahan ke Firestore
         async function toggleHighlightAndSave(day, colorKey) {
             const currentSavedColor = scheduleData[day];
             
