@@ -100,8 +100,8 @@
                 <div><span class="sm:hidden">Sab</span><span class="hidden sm:block">Sabtu</span></div>
             </div>
 
-            <!-- CONTAINER DATES: Ditambahkan animasi transisi smooth (transition-all duration-300 ease-in-out) -->
-            <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center transition-all duration-300 ease-in-out overflow-hidden">
+            <!-- CONTAINER DATES: Hapus overflow-hidden agar picker tidak terpotong -->
+            <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center transition-all duration-300 ease-in-out">
             </div>
         </div>
 
@@ -374,6 +374,7 @@
 
         // --- EVENT ATTACHMENT TANGGAL & COLOR PICKER ---
         let activePicker = null;
+        let activeDayWrapper = null;
         let pressTimer = null;
         let isLongPress = false;
 
@@ -381,8 +382,9 @@
             Object.keys(window.dayElements).forEach(cellKey => {
                 const { circle, wrapper: dayWrapper } = window.dayElements[cellKey];
 
+                // Picker selalu muncul konsisten di atas angka (-top-12) dengan z-index tinggi
                 const pickerDiv = document.createElement("div");
-                pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-40 transition-all duration-150 transform scale-95 opacity-0";
+                pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-50 transition-all duration-150 transform scale-95 opacity-0 origin-bottom";
 
                 const preventBubble = (e) => e.stopPropagation();
                 pickerDiv.addEventListener("touchstart", preventBubble, { passive: true });
@@ -423,7 +425,7 @@
 
                     pressTimer = setTimeout(() => {
                         isLongPress = true;
-                        openPicker(pickerDiv);
+                        openPicker(pickerDiv, dayWrapper);
                     }, 400);
                 }
 
@@ -519,9 +521,17 @@
             }
         }
 
-        function openPicker(pickerEl) {
+        function openPicker(pickerEl, dayWrapper) {
             if (activePicker && activePicker !== pickerEl) closePicker();
+            
             activePicker = pickerEl;
+            activeDayWrapper = dayWrapper;
+
+            // Menaikkan layer z-index sel tanggal yang sedang aktif
+            if (activeDayWrapper) {
+                activeDayWrapper.classList.add("z-30");
+            }
+
             pickerEl.classList.remove("hidden");
             setTimeout(() => {
                 pickerEl.classList.remove("scale-95", "opacity-0");
@@ -532,11 +542,16 @@
         function closePicker() {
             if (!activePicker) return;
             const pickerEl = activePicker;
+            
             pickerEl.classList.remove("scale-100", "opacity-100");
             pickerEl.classList.add("scale-95", "opacity-0");
 
             setTimeout(() => {
                 pickerEl.classList.add("hidden");
+                if (activeDayWrapper) {
+                    activeDayWrapper.classList.remove("z-30");
+                    activeDayWrapper = null;
+                }
             }, 150);
 
             activePicker = null;
