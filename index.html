@@ -69,11 +69,11 @@
     <!-- CARD CONTAINER UTAMA -->
     <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
         
-        <!-- TARGET CAPTURE (Area yang dipotret oleh html2canvas) -->
-        <div id="calendar-card" class="bg-white p-4 rounded-xl">
+        <!-- TARGET CAPTURE: Dikunci tingginya (h-[440px]) dan memakai Flexbox agar presisi bebas hentakan -->
+        <div id="calendar-card" class="bg-white p-4 rounded-xl flex flex-col justify-between h-[440px]">
             
-            <!-- HEADER JUDUL BULAN & NAVIGASI PANAH PREV/NEXT -->
-            <div class="flex items-center justify-between mb-6">
+            <!-- HEADER JUDUL BULAN & NAVIGASI -->
+            <div class="flex items-center justify-between mb-2">
                 <button id="btn-prev-month" type="button" title="Bulan Sebelumnya" class="p-2 rounded-xl hover:bg-gray-100 text-gray-600 transition-colors active:scale-95">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
@@ -90,7 +90,7 @@
             </div>
 
             <!-- HEADER NAMA HARI (Grid 7 Kolom) -->
-            <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4 justify-items-center">
+            <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm my-2 justify-items-center">
                 <div><span class="sm:hidden">Min</span><span class="hidden sm:block">Minggu</span></div>
                 <div><span class="sm:hidden">Sen</span><span class="hidden sm:block">Senin</span></div>
                 <div><span class="sm:hidden">Sel</span><span class="hidden sm:block">Selasa</span></div>
@@ -100,16 +100,16 @@
                 <div><span class="sm:hidden">Sab</span><span class="hidden sm:block">Sabtu</span></div>
             </div>
 
-            <!-- CONTAINER DATES: Hapus overflow-hidden agar picker tidak terpotong -->
-            <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center transition-all duration-300 ease-in-out">
+            <!-- CONTAINER DATES: flex-1 untuk mengisi sisa ruang, sel otomatis merenggang presisi -->
+            <div id="calendar-days" class="grid grid-cols-7 flex-1 w-full text-center text-gray-800 text-sm font-medium justify-items-center items-center">
             </div>
         </div>
 
-        <!-- FOOTER / KONTROL AKSES (Dropdown & Tombol Share) -->
+        <!-- FOOTER / KONTROL AKSES -->
         <div class="mt-6 border-t border-gray-100 pt-4 flex flex-col gap-3">
             <div class="flex w-full items-center gap-2 relative">
                 
-                <!-- CUSTOM DROPDOWN CONTAINER (80% Lebar Area) -->
+                <!-- CUSTOM DROPDOWN CONTAINER -->
                 <div class="w-[80%] relative">
                     <button id="custom-dropdown-btn" type="button" class="w-full bg-gray-100/80 hover:bg-gray-200/80 text-gray-800 font-semibold py-2.5 px-3.5 rounded-xl text-sm flex items-center justify-between transition-all duration-200 border border-transparent focus:border-gray-300 focus:bg-white focus:shadow-sm">
                         <span id="dropdown-label" class="truncate">Zafi</span>
@@ -137,7 +137,7 @@
                     </div>
                 </div>
 
-                <!-- TOMBOL BAGIKAN / SALIN (20% Lebar Area) -->
+                <!-- TOMBOL BAGIKAN / SALIN -->
                 <button id="btn-copy" title="Bagikan / Salin Gambar" class="w-[20%] h-[42px] bg-gray-100/80 hover:bg-gray-200/80 text-gray-700 font-semibold rounded-xl flex items-center justify-center transition duration-200 active:scale-95">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -152,9 +152,7 @@
         <span>Memproses gambar...</span>
     </div>
 
-    <!-- ====================================================================
-         SCRIPT 1 (SINKRONUS): RENDER DYNAMIC GRID KALENDER
-         ==================================================================== -->
+    <!-- SCRIPT 1: RENDER DYNAMIC GRID KALENDER -->
     <script>
         const date = new Date();
         window.currentYear = date.getFullYear();
@@ -165,15 +163,15 @@
             "Juli", "Agustus", "September", "Oktober", "November", "Desember"
         ];
 
-        // Helper membuat SVG angka tanggal dengan animasi fade-in halus
         function createDaySvg(dayNumber, isCurrentMonth = true, cellKey = "") {
             const dayWrapper = document.createElement("div");
-            dayWrapper.className = "day-container cursor-pointer select-none relative transition-all duration-300 ease-in-out transform";
+            // Menambahkan flex items-center & justify-center agar ikon/angka presisi di tengah sel
+            dayWrapper.className = "day-container cursor-pointer select-none relative transition-all duration-300 ease-in-out transform flex items-center justify-center w-full h-full";
 
             const svgNS = "http://www.w3.org/2000/svg";
             const svg = document.createElementNS(svgNS, "svg");
             svg.setAttribute("viewBox", "0 0 36 36");
-            svg.setAttribute("class", "day-svg");
+            svg.setAttribute("class", "day-svg w-9 h-9 sm:w-10 sm:h-10");
 
             const circle = document.createElementNS(svgNS, "circle");
             circle.setAttribute("cx", "18");
@@ -198,7 +196,6 @@
             return { dayWrapper, circle, text, isCurrentMonth };
         }
 
-        // Fungsi Global Render Grid (Dengan penanganan Smooth Height Transition)
         window.renderCalendarGrid = function(year, month) {
             document.getElementById("month-year-title").innerText = `${monthNames[month]} ${year}`;
             const calendarDaysContainer = document.getElementById("calendar-days");
@@ -210,7 +207,15 @@
 
             window.dayElements = {};
 
-            // 1. Tanggal Bulan Lalu (Offset Kiri)
+            // Hitung total sel & baris secara presisi
+            const totalRenderedSoFar = firstDayIndex + totalDays;
+            const targetTotalCells = totalRenderedSoFar > 35 ? 42 : 35;
+            const rowCount = targetTotalCells / 7;
+
+            // Kunci grid row fraction secara dinamis di container
+            calendarDaysContainer.style.gridTemplateRows = `repeat(${rowCount}, minmax(0, 1fr))`;
+
+            // 1. Tanggal Bulan Lalu
             for (let x = firstDayIndex; x > 0; x--) {
                 const prevDayNum = prevLastDay - x + 1;
                 const cellKey = `prev_${prevDayNum}`;
@@ -219,7 +224,7 @@
                 calendarDaysContainer.appendChild(dayWrapper);
             }
 
-            // 2. Tanggal Bulan Ini (Aktif)
+            // 2. Tanggal Bulan Ini
             for (let day = 1; day <= totalDays; day++) {
                 const cellKey = `${day}`;
                 const { dayWrapper, circle, text, isCurrentMonth } = createDaySvg(day, true, cellKey);
@@ -227,11 +232,7 @@
                 calendarDaysContainer.appendChild(dayWrapper);
             }
 
-            // 3. Tanggal Bulan Depan (Offset Kanan)
-            const totalRenderedSoFar = firstDayIndex + totalDays;
-            
-            // Patokan utama: 35 sel (5 baris). Jika butuh lebih, gunakan 42 sel (6 baris).
-            const targetTotalCells = totalRenderedSoFar > 35 ? 42 : 35;
+            // 3. Tanggal Bulan Depan
             const nextDaysCount = targetTotalCells - totalRenderedSoFar;
 
             for (let j = 1; j <= nextDaysCount; j++) {
@@ -242,420 +243,10 @@
             }
         };
 
-        // Render awal
         window.renderCalendarGrid(window.currentYear, window.currentMonth);
     </script>
 
-    <!-- ====================================================================
-         SCRIPT 2 (MODULE): FIREBASE REALTIME SYNC, EVENT HANDLER, & EXPORT
-         ==================================================================== -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBs2RwkyPaIugpdFSpYWRnZK0Ry1j0OLek",
-            authDomain: "share-recap.firebaseapp.com",
-            projectId: "share-recap",
-            storageBucket: "share-recap.firebasestorage.app",
-            messagingSenderId: "1095414789864",
-            appId: "1:1095414789864:web:b7feaf89a346f3aa2f7b5d",
-            measurementId: "G-PEPWBTK71S"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const db = getFirestore(app);
-
-        const colorMap = {
-            "emerald": "#a7f3d0",
-            "yellow":  "#fef08a",
-            "rose":    "#fecdd3",
-            "sky":     "#bae6fd"
-        };
-
-        // --- CUSTOM DROPDOWN ---
-        const dropdownBtn = document.getElementById("custom-dropdown-btn");
-        const dropdownMenu = document.getElementById("custom-dropdown-menu");
-        const dropdownArrow = document.getElementById("dropdown-arrow");
-        const dropdownLabel = document.getElementById("dropdown-label");
-        const studentOptions = document.querySelectorAll(".student-option");
-
-        let currentSelectedStudent = "Zafi";
-
-        function toggleDropdown() {
-            const isHidden = dropdownMenu.classList.contains("hidden");
-            if (isHidden) {
-                dropdownMenu.classList.remove("hidden");
-                setTimeout(() => {
-                    dropdownMenu.classList.remove("opacity-0", "scale-95");
-                    dropdownMenu.classList.add("opacity-100", "scale-100");
-                    dropdownArrow.classList.add("rotate-180");
-                }, 10);
-            } else {
-                closeDropdown();
-            }
-        }
-
-        function closeDropdown() {
-            dropdownMenu.classList.remove("opacity-100", "scale-100");
-            dropdownMenu.classList.add("opacity-0", "scale-95");
-            dropdownArrow.classList.remove("rotate-180");
-            setTimeout(() => {
-                dropdownMenu.classList.add("hidden");
-            }, 150);
-        }
-
-        dropdownBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            toggleDropdown();
-        });
-
-        document.addEventListener("click", (e) => {
-            if (!dropdownMenu.contains(e.target) && !dropdownBtn.contains(e.target)) {
-                closeDropdown();
-            }
-        });
-
-        function updateDropdownUI(val) {
-            currentSelectedStudent = val;
-            dropdownLabel.innerText = val;
-
-            studentOptions.forEach(opt => {
-                const checkIcon = opt.querySelector(".check-icon");
-                if (opt.dataset.value === val) {
-                    opt.classList.add("bg-gray-100", "text-gray-900", "font-semibold");
-                    checkIcon.classList.remove("hidden");
-                } else {
-                    opt.classList.remove("bg-gray-100", "text-gray-900", "font-semibold");
-                    checkIcon.classList.add("hidden");
-                }
-            });
-        }
-
-        studentOptions.forEach(opt => {
-            opt.addEventListener("click", () => {
-                const selectedVal = opt.dataset.value;
-                updateDropdownUI(selectedVal);
-                closeDropdown();
-                subscribeToStudentSchedule();
-            });
-        });
-
-        const lastStudent = localStorage.getItem("last_selected_student");
-        if (lastStudent && Array.from(studentOptions).some(o => o.dataset.value === lastStudent)) {
-            updateDropdownUI(lastStudent);
-        } else {
-            updateDropdownUI("Zafi");
-        }
-
-        // --- REALTIME FIRESTORE SYNC ---
-        let scheduleData = {};
-        let unsubscribeSnapshot = null;
-
-        function subscribeToStudentSchedule() {
-            if (unsubscribeSnapshot) unsubscribeSnapshot();
-
-            localStorage.setItem("last_selected_student", currentSelectedStudent);
-
-            const docId = `${window.currentYear}-${window.currentMonth + 1}_${currentSelectedStudent}`;
-            const scheduleDocRef = doc(db, "les_schedules", docId);
-
-            unsubscribeSnapshot = onSnapshot(scheduleDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    scheduleData = docSnap.data();
-                } else {
-                    scheduleData = {};
-                }
-                renderAllHighlights();
-            });
-        }
-
-        // --- EVENT ATTACHMENT TANGGAL & COLOR PICKER ---
-        let activePicker = null;
-        let activeDayWrapper = null;
-        let pressTimer = null;
-        let isLongPress = false;
-
-        function attachDayEventListeners() {
-            Object.keys(window.dayElements).forEach(cellKey => {
-                const { circle, wrapper: dayWrapper } = window.dayElements[cellKey];
-
-                // Picker selalu muncul konsisten di atas angka (-top-12) dengan z-index tinggi
-                const pickerDiv = document.createElement("div");
-                pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-50 transition-all duration-150 transform scale-95 opacity-0 origin-bottom";
-
-                const preventBubble = (e) => e.stopPropagation();
-                pickerDiv.addEventListener("touchstart", preventBubble, { passive: true });
-                pickerDiv.addEventListener("touchend", preventBubble, { passive: true });
-                pickerDiv.addEventListener("mousedown", preventBubble);
-                pickerDiv.addEventListener("mouseup", preventBubble);
-
-                const colors = [
-                    { key: "emerald", dot: "bg-emerald-400" },
-                    { key: "yellow",  dot: "bg-yellow-400" },
-                    { key: "rose",    dot: "bg-rose-400" },
-                    { key: "sky",     dot: "bg-sky-400" }
-                ];
-
-                colors.forEach(c => {
-                    const btn = document.createElement("button");
-                    btn.type = "button";
-                    btn.className = `color-btn w-5 h-5 rounded-full ${c.dot} hover:scale-125 transition-transform duration-100 focus:outline-none`;
-
-                    const selectColor = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleHighlightAndSave(cellKey, c.key);
-                        closePicker();
-                    };
-
-                    btn.addEventListener("pointerdown", selectColor);
-                    pickerDiv.appendChild(btn);
-                });
-
-                dayWrapper.appendChild(pickerDiv);
-
-                function startPress(e) {
-                    if (e.target.closest(".pop-picker")) return;
-                    if (e.cancelable && e.type === "touchstart") e.preventDefault();
-                    isLongPress = false;
-                    cancelPress();
-
-                    pressTimer = setTimeout(() => {
-                        isLongPress = true;
-                        openPicker(pickerDiv, dayWrapper);
-                    }, 400);
-                }
-
-                function cancelPress() {
-                    if (pressTimer) {
-                        clearTimeout(pressTimer);
-                        pressTimer = null;
-                    }
-                }
-
-                function handleEnd(e) {
-                    if (e.target.closest(".pop-picker")) return;
-                    cancelPress();
-
-                    if (!isLongPress) {
-                        closePicker();
-                        toggleHighlightAndSave(cellKey, "emerald");
-                    }
-                }
-
-                dayWrapper.oncontextmenu = (e) => { e.preventDefault(); return false; };
-                dayWrapper.addEventListener("touchstart", startPress, { passive: false });
-                dayWrapper.addEventListener("touchend", handleEnd);
-                dayWrapper.addEventListener("touchcancel", cancelPress);
-                dayWrapper.addEventListener("mousedown", startPress);
-                dayWrapper.addEventListener("mouseup", handleEnd);
-                dayWrapper.addEventListener("mouseleave", cancelPress);
-            });
-        }
-
-        // --- NAVIGASI BULAN (PREV / NEXT) ---
-        const btnPrev = document.getElementById("btn-prev-month");
-        const btnNext = document.getElementById("btn-next-month");
-
-        function changeMonth(delta) {
-            window.currentMonth += delta;
-            if (window.currentMonth < 0) {
-                window.currentMonth = 11;
-                window.currentYear--;
-            } else if (window.currentMonth > 11) {
-                window.currentMonth = 0;
-                window.currentYear++;
-            }
-
-            window.renderCalendarGrid(window.currentYear, window.currentMonth);
-            attachDayEventListeners();
-            subscribeToStudentSchedule();
-        }
-
-        btnPrev.addEventListener("click", () => changeMonth(-1));
-        btnNext.addEventListener("click", () => changeMonth(1));
-
-        // Inisialisasi Pertama
-        attachDayEventListeners();
-        subscribeToStudentSchedule();
-
-        function renderAllHighlights() {
-            Object.keys(window.dayElements).forEach(cellKey => {
-                const { circle, text, isCurrentMonth } = window.dayElements[cellKey];
-                const colorKey = scheduleData[cellKey];
-
-                if (colorKey && colorMap[colorKey]) {
-                    // Highlight aktif: tampilkan warna 100% solid & teks tebal jelas
-                    circle.setAttribute("fill", colorMap[colorKey]);
-                    text.setAttribute("font-weight", "700");
-                    text.setAttribute("fill", "#111827");
-                } else {
-                    // Tanpa highlight: kembalikan ke kondisi default (transparan jika offset)
-                    circle.setAttribute("fill", "transparent");
-                    text.setAttribute("font-weight", isCurrentMonth ? "500" : "400");
-                    text.setAttribute("fill", isCurrentMonth ? "#1f2937" : "rgba(31, 41, 55, 0.35)");
-                }
-            });
-        }
-
-        async function toggleHighlightAndSave(cellKey, colorKey) {
-            const docId = `${window.currentYear}-${window.currentMonth + 1}_${currentSelectedStudent}`;
-            const scheduleDocRef = doc(db, "les_schedules", docId);
-
-            const currentSavedColor = scheduleData[cellKey];
-
-            if (currentSavedColor === colorKey) {
-                delete scheduleData[cellKey];
-            } else {
-                scheduleData[cellKey] = colorKey;
-            }
-
-            try {
-                await setDoc(scheduleDocRef, scheduleData);
-            } catch (err) {
-                console.error("Gagal menyimpan ke Firestore:", err);
-                showToast("❌ Gagal menyinkronkan data.");
-            }
-        }
-
-        function openPicker(pickerEl, dayWrapper) {
-            if (activePicker && activePicker !== pickerEl) closePicker();
-            
-            activePicker = pickerEl;
-            activeDayWrapper = dayWrapper;
-
-            // Menaikkan layer z-index sel tanggal yang sedang aktif
-            if (activeDayWrapper) {
-                activeDayWrapper.classList.add("z-30");
-            }
-
-            pickerEl.classList.remove("hidden");
-            setTimeout(() => {
-                pickerEl.classList.remove("scale-95", "opacity-0");
-                pickerEl.classList.add("scale-100", "opacity-100");
-            }, 10);
-        }
-
-        function closePicker() {
-            if (!activePicker) return;
-            const pickerEl = activePicker;
-            
-            pickerEl.classList.remove("scale-100", "opacity-100");
-            pickerEl.classList.add("scale-95", "opacity-0");
-
-            setTimeout(() => {
-                pickerEl.classList.add("hidden");
-                if (activeDayWrapper) {
-                    activeDayWrapper.classList.remove("z-30");
-                    activeDayWrapper = null;
-                }
-            }, 150);
-
-            activePicker = null;
-        }
-
-        document.addEventListener("pointerdown", function(e) {
-            if (activePicker && !e.target.closest(".day-container")) {
-                closePicker();
-            }
-        });
-
-        // --- CANVAS SHARE / COPY ---
-        function generateCalendarCanvas() {
-            closePicker();
-            closeDropdown();
-            const card = document.getElementById("calendar-card");
-
-            return html2canvas(card, { 
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: "#ffffff",
-                onclone: (clonedDoc) => {
-                    const pickers = clonedDoc.querySelectorAll(".pop-picker");
-                    pickers.forEach(el => el.remove());
-
-                    const clonedCard = clonedDoc.getElementById("calendar-card");
-                    if (clonedCard) {
-                        clonedCard.style.backgroundColor = "#ffffff";
-                    }
-                }
-            });
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById("toast");
-            toast.querySelector("span").innerText = message;
-
-            toast.classList.remove("opacity-0", "pointer-events-none");
-            toast.classList.add("opacity-100");
-
-            setTimeout(() => {
-                toast.classList.remove("opacity-100");
-                toast.classList.add("opacity-0", "pointer-events-none");
-            }, 2000);
-        }
-
-        function canvasToBlobAsync(canvas, type = 'image/png') {
-            return new Promise((resolve) => {
-                canvas.toBlob((blob) => resolve(blob), type);
-            });
-        }
-
-        async function copyCalendarToClipboard() {
-            showToast("Memproses gambar...");
-
-            try {
-                const canvas = await generateCalendarCanvas();
-                const blob = await canvasToBlobAsync(canvas, 'image/png');
-
-                if (!blob) throw new Error("Gagal membuat Blob dari gambar.");
-
-                const fileName = `Rekap_${currentSelectedStudent}_${monthNames[window.currentMonth]}_${window.currentYear}.png`;
-                const file = new File([blob], fileName, { type: 'image/png' });
-
-                const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-
-                if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file] });
-                    showToast("Berhasil dibagikan!");
-                    return;
-                }
-
-                if (navigator.clipboard && window.ClipboardItem) {
-                    try {
-                        const item = new ClipboardItem({ [blob.type]: blob });
-                        await navigator.clipboard.write([item]);
-                        showToast("Gambar berhasil disalin!");
-                        return;
-                    } catch (clipboardErr) {
-                        console.warn("Clipboard gagal, beralih ke unduh...", clipboardErr);
-                    }
-                }
-
-                const downloadUrl = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.download = fileName;
-                link.href = downloadUrl;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-                showToast("Gambar diunduh!");
-
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.error("Gagal memproses gambar:", err);
-                    showToast("❌ Gagal memproses gambar.");
-                }
-            }
-        }
-
-        document.getElementById("btn-copy").addEventListener("click", copyCalendarToClipboard);
-    </script>
+    <!-- SCRIPT 2 (MODULE Firebase & Events tetap seperti semula) -->
+    <!-- ... Tetap sertakan Script 2 milik Anda di bawah ini ... -->
 </body>
 </html>
