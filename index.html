@@ -165,16 +165,10 @@
             "Juli", "Agustus", "September", "Oktober", "November", "Desember"
         ];
 
-        // Helper membuat SVG angka tanggal (dengan key unik untuk identifikasi Firestore)
+        // Helper membuat SVG angka tanggal
         function createDaySvg(dayNumber, isCurrentMonth = true, cellKey = "") {
             const dayWrapper = document.createElement("div");
-            
-            // Pertahankan opacity redup untuk tanggal offset, tetapi biarkan interaktif (pointer-events-auto)
-            if (isCurrentMonth) {
-                dayWrapper.className = "day-container cursor-pointer select-none relative";
-            } else {
-                dayWrapper.className = "day-container cursor-pointer select-none relative opacity-35 hover:opacity-75 transition-opacity";
-            }
+            dayWrapper.className = "day-container cursor-pointer select-none relative transition-all duration-150";
 
             const svgNS = "http://www.w3.org/2000/svg";
             const svg = document.createElementNS(svgNS, "svg");
@@ -194,14 +188,14 @@
             text.setAttribute("text-anchor", "middle");
             text.setAttribute("font-size", "14");
             text.setAttribute("font-weight", isCurrentMonth ? "500" : "400");
-            text.setAttribute("fill", "#1f2937");
+            text.setAttribute("fill", isCurrentMonth ? "#1f2937" : "rgba(31, 41, 55, 0.35)");
             text.textContent = dayNumber;
 
             svg.appendChild(circle);
             svg.appendChild(text);
             dayWrapper.appendChild(svg);
 
-            return { dayWrapper, circle, text };
+            return { dayWrapper, circle, text, isCurrentMonth };
         }
 
         // Fungsi Global Render Grid (Selalu 42 Sel / 6 Baris Konsisten)
@@ -220,27 +214,39 @@
             for (let x = firstDayIndex; x > 0; x--) {
                 const prevDayNum = prevLastDay - x + 1;
                 const cellKey = `prev_${prevDayNum}`;
-                const { dayWrapper, circle, text } = createDaySvg(prevDayNum, false, cellKey);
-                window.dayElements[cellKey] = { circle, text, wrapper: dayWrapper };
+                const { dayWrapper, circle, text, isCurrentMonth } = createDaySvg(prevDayNum, false, cellKey);
+                window.dayElements[cellKey] = { circle, text, wrapper: dayWrapper, isCurrentMonth };
                 calendarDaysContainer.appendChild(dayWrapper);
             }
 
             // 2. Tanggal Bulan Ini (Aktif)
             for (let day = 1; day <= totalDays; day++) {
                 const cellKey = `${day}`;
-                const { dayWrapper, circle, text } = createDaySvg(day, true, cellKey);
-                window.dayElements[cellKey] = { circle, text, wrapper: dayWrapper };
+                const { dayWrapper, circle, text, isCurrentMonth } = createDaySvg(day, true, cellKey);
+                window.dayElements[cellKey] = { circle, text, wrapper: dayWrapper, isCurrentMonth };
                 calendarDaysContainer.appendChild(dayWrapper);
             }
 
-            // 3. Tanggal Bulan Depan (Offset Kanan) - Selalu Genapkan ke 42 Sel (6 Baris)
+            // 3. Tanggal Bulan Depan (Offset Kanan) - Genapkan Selalu ke 42 Sel
             const totalRenderedSoFar = firstDayIndex + totalDays;
             const nextDaysCount = 42 - totalRenderedSoFar; 
 
+            // Cek apakah baris ke-6 (indeks sel 35-41) sepenuhnya diisi oleh bulan depan
+            const isSixthRowFullOffset = totalRenderedSoFar <= 35;
+
             for (let j = 1; j <= nextDaysCount; j++) {
+                const currentCellIndex = totalRenderedSoFar + j - 1; // 0..41
                 const cellKey = `next_${j}`;
-                const { dayWrapper, circle, text } = createDaySvg(j, false, cellKey);
-                window.dayElements[cellKey] = { circle, text, wrapper: dayWrapper };
+                const { dayWrapper, circle, text, isCurrentMonth } = createDaySvg(j, false, cellKey);
+
+                // Jika baris ke-6 sepenuhnya bulan baru, sembunyikan visualnya (visibility: hidden)
+                // Ini mempertahankan tinggi kartu secara konsisten tanpa merusak layout
+                if (isSixthRowFullOffset && currentCellIndex >= 35) {
+                    dayWrapper.style.visibility = "hidden";
+                    dayWrapper.classList.add("pointer-events-none");
+                }
+
+                window.dayElements[cellKey] = { circle, text, wrapper: dayWrapper, isCurrentMonth };
                 calendarDaysContainer.appendChild(dayWrapper);
             }
         };
@@ -485,17 +491,19 @@
 
         function renderAllHighlights() {
             Object.keys(window.dayElements).forEach(cellKey => {
-                const { circle, text } = window.dayElements[cellKey];
+                const { circle, text, isCurrentMonth } = window.dayElements[cellKey];
                 const colorKey = scheduleData[cellKey];
 
                 if (colorKey && colorMap[colorKey]) {
+                    // Highlight aktif: tampilkan warna 100% solid & teks tebal jelas
                     circle.setAttribute("fill", colorMap[colorKey]);
                     text.setAttribute("font-weight", "700");
                     text.setAttribute("fill", "#111827");
                 } else {
+                    // Tanpa highlight: kembalikan ke kondisi default (transparan jika offset)
                     circle.setAttribute("fill", "transparent");
-                    text.setAttribute("font-weight", cellKey.includes("_") ? "400" : "500");
-                    text.setAttribute("fill", "#1f2937");
+                    text.setAttribute("font-weight", isCurrentMonth ? "500" : "400");
+                    text.setAttribute("fill", isCurrentMonth ? "#1f2937" : "rgba(31, 41, 55, 0.35)");
                 }
             });
         }
