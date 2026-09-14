@@ -14,44 +14,21 @@
             background-color: #f3f4f6;
         }
 
-        /* 
-         * FIX PERMANEN OFFLINE BASELINE HTML2CANVAS:
-         * Menggunakan Grid Centering murni tanpa flexbox padding.
-         * Kita matikan line-height default browser agar baseline font tidak menekan angka ke bawah.
-         */
-        .day-tile {
+        .day-container {
             position: relative;
             width: 36px;
             height: 36px;
-            display: grid;
-            place-items: center;
-            border-radius: 9999px;
-            user-select: none;
-            line-height: 1 !important; /* Kunci utama: Menghilangkan space kosong di bawah font */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* Teks tanggal diposisikan tepat di tengah */
-        .day-text {
-            position: relative;
-            z-index: 10;
-            display: block;
-            transform: translateY(-0.5px); /* Fine-tuning posisi piksel angka */
+        /* SVG dipaksa memenuhi kontainer */
+        .day-svg {
+            width: 36px;
+            height: 36px;
+            overflow: visible;
         }
-
-        /* Pseudo-element background lingkaran */
-        .day-tile.is-highlighted::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: 9999px;
-            z-index: 1;
-        }
-
-        /* Palette Warna Highlight */
-        .day-tile.hl-emerald::before { background-color: #a7f3d0; }
-        .day-tile.hl-yellow::before  { background-color: #fef08a; }
-        .day-tile.hl-rose::before    { background-color: #fecdd3; }
-        .day-tile.hl-sky::before     { background-color: #bae6fd; }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
@@ -59,11 +36,12 @@
     <!-- Container Utama -->
     <div class="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
         
-        <!-- Area Kalender -->
+        <!-- Area Kalender yang Akan Dijadikan Gambar/Di-share -->
         <div id="calendar-card" class="bg-white p-4 rounded-xl">
+            <!-- Judul Bulan & Tahun -->
             <h2 id="month-year-title" class="text-xl font-bold text-gray-800 mb-6"></h2>
 
-            <!-- Header Hari -->
+            <!-- Header Hari (Minggu - Sabtu) -->
             <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4 justify-items-center">
                 <div><span class="sm:hidden">Min</span><span class="hidden sm:block">Minggu</span></div>
                 <div><span class="sm:hidden">Sen</span><span class="hidden sm:block">Senin</span></div>
@@ -76,7 +54,7 @@
 
             <!-- Grid Tanggal -->
             <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center">
-                <!-- Tanggal di-generate oleh JS -->
+                <!-- Tanggal di-generate otomatis oleh JS -->
             </div>
         </div>
 
@@ -100,20 +78,15 @@
     <script>
         /**
          * =========================================================================
-         * PENJELASAN TEKNIS PERBAIKAN TOTAL (FINAL FIX)
+         * SOLUSI VEKTOR SVG (100% TERKUNCI & PRESISI)
          * =========================================================================
-         * Masalah pada gambar sebelumnya:
-         * Teks font bawaan browser memiliki "line-gap" vertikal di bagian bawah teks.
-         * html2canvas merender `line-height` ini secara mentah, membuat angka melompat ke bawah 
-         * dari titik tengah lingkaran background.
-         * 
-         * Solusi di kodingan ini:
-         * 1. Menetapkan `line-height: 1 !important` pada container `.day-tile`. Ini membuang seluruh 
-         *    ruang kosong bawaan font di bagian bawah teks.
-         * 2. Menggunakan `display: grid` & `place-items: center` menggantikan flexbox untuk 
-         *    perhitungan matematis posisi piksel yang lebih tepat di html2canvas.
-         * 3. Menambahkan `transform: translateY(-0.5px)` pada `.day-text` untuk mengoreksi offset 
-         *    mikro font sistem pada gambar akhir.
+         * Mengapa SVG Mengatasi Masalah Geser?
+         * 1. Elemen <circle> menggunakan koordinat pusat (cx="18" cy="18").
+         * 2. Elemen <text> diposisikan di titik pusat (x="18" y="18") dengan 
+         *    atribut `text-anchor="middle"` dan `dominant-baseline="central"`.
+         * 3. Atribut `dominant-baseline="central"` memaksa browser dan html2canvas 
+         *    mengunci sumbu Y teks persis di tengah matematis lingkaran, mengabaikan 
+         *    sifat font-baseline bawaan OS.
          * =========================================================================
          */
 
@@ -136,31 +109,79 @@
         let pressTimer = null;
         let isLongPress = false;
 
-        const highlightClasses = ["hl-emerald", "hl-yellow", "hl-rose", "hl-sky"];
+        // Kode warna Hex untuk SVG fill
+        const colorMap = {
+            "emerald": "#a7f3d0", // bg-emerald-200
+            "yellow":  "#fef08a", // bg-yellow-200
+            "rose":    "#fecdd3", // bg-rose-200
+            "sky":     "#bae6fd"  // bg-sky-200
+        };
 
+        // Render cell kosong sebelum tanggal 1
         for (let x = 0; x < firstDayIndex; x++) {
             const emptyDiv = document.createElement("div");
             emptyDiv.className = "w-9 h-9";
             calendarDaysContainer.appendChild(emptyDiv);
         }
 
+        // Render Tanggal 1 s/d Selesai
         for (let day = 1; day <= totalDays; day++) {
-            const dayDiv = document.createElement("div");
-            dayDiv.className = "day-tile cursor-pointer hover:bg-gray-100 transition";
+            const dayWrapper = document.createElement("div");
+            dayWrapper.className = "day-container cursor-pointer select-none";
 
-            const textSpan = document.createElement("span");
-            textSpan.className = "day-text";
-            textSpan.innerText = day;
-            dayDiv.appendChild(textSpan);
+            /*
+             * MEMBUAT ELEMEN SVG DINAMIS:
+             * Seluruh komponen tanggal (lingkaran & teks) digambar sebagai VEKTOR.
+             */
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("viewBox", "0 0 36 36");
+            svg.setAttribute("class", "day-svg");
 
+            // 1. Elemen Lingkaran Background
+            const circle = document.createElementNS(svgNS, "circle");
+            circle.setAttribute("cx", "18");
+            circle.setAttribute("cy", "18");
+            circle.setAttribute("r", "17");
+            circle.setAttribute("fill", "transparent");
+            circle.setAttribute("class", "transition-colors duration-150");
+
+            // 2. Elemen Teks Angka
+            const text = document.createElementNS(svgNS, "text");
+            text.setAttribute("x", "18");
+            text.setAttribute("y", "18");
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("dominant-baseline", "central"); // Kunci simetri vertikal teks!
+            text.setAttribute("font-size", "14");
+            text.setAttribute("font-weight", "500");
+            text.setAttribute("fill", "#1f2937"); // text-gray-800
+            text.textContent = day;
+
+            svg.appendChild(circle);
+            svg.appendChild(text);
+            dayWrapper.appendChild(svg);
+
+            // Hover effect via JS sederhana pada SVG Circle
+            dayWrapper.addEventListener("mouseenter", () => {
+                if (circle.getAttribute("fill") === "transparent") {
+                    circle.setAttribute("fill", "#f3f4f6"); // hover:bg-gray-100
+                }
+            });
+            dayWrapper.addEventListener("mouseleave", () => {
+                if (circle.getAttribute("fill") === "#f3f4f6") {
+                    circle.setAttribute("fill", "transparent");
+                }
+            });
+
+            // Pop-up Color Picker (Menggunakan HTML Biasa Melayang di Atas SVG)
             const pickerDiv = document.createElement("div");
             pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-30 transition-all duration-150 transform scale-95 opacity-0";
             
             const colors = [
-                { classKey: "hl-emerald", dot: "bg-emerald-400" },
-                { classKey: "hl-yellow", dot: "bg-yellow-400" },
-                { classKey: "hl-rose", dot: "bg-rose-400" },
-                { classKey: "hl-sky", dot: "bg-sky-400" }
+                { key: "emerald", dot: "bg-emerald-400" },
+                { key: "yellow",  dot: "bg-yellow-400" },
+                { key: "rose",    dot: "bg-rose-400" },
+                { key: "sky",     dot: "bg-sky-400" }
             ];
 
             colors.forEach(c => {
@@ -170,14 +191,15 @@
                 
                 btn.onclick = function(e) {
                     e.stopPropagation();
-                    applyHighlight(dayDiv, c.classKey);
+                    applySvgHighlight(circle, text, c.key);
                     closePicker();
                 };
                 pickerDiv.appendChild(btn);
             });
 
-            dayDiv.appendChild(pickerDiv);
+            dayWrapper.appendChild(pickerDiv);
 
+            // Logika Gestur Long Press
             function startPress(e) {
                 isLongPress = false;
                 pressTimer = setTimeout(() => {
@@ -190,15 +212,16 @@
                 clearTimeout(pressTimer);
             }
 
-            dayDiv.addEventListener("mousedown", startPress);
-            dayDiv.addEventListener("touchstart", startPress, { passive: true });
+            dayWrapper.addEventListener("mousedown", startPress);
+            dayWrapper.addEventListener("touchstart", startPress, { passive: true });
 
-            dayDiv.addEventListener("mouseup", cancelPress);
-            dayDiv.addEventListener("mouseleave", cancelPress);
-            dayDiv.addEventListener("touchend", cancelPress);
-            dayDiv.addEventListener("touchcancel", cancelPress);
+            dayWrapper.addEventListener("mouseup", cancelPress);
+            dayWrapper.addEventListener("mouseleave", cancelPress);
+            dayWrapper.addEventListener("touchend", cancelPress);
+            dayWrapper.addEventListener("touchcancel", cancelPress);
 
-            dayDiv.onclick = function(e) {
+            // Klik Standar (Default Emerald)
+            dayWrapper.onclick = function(e) {
                 if (e.target.closest(".pop-picker")) return;
 
                 if (isLongPress) {
@@ -207,24 +230,33 @@
                 }
 
                 closePicker();
-                applyHighlight(dayDiv, "hl-emerald");
+                applySvgHighlight(circle, text, "emerald");
             };
 
-            calendarDaysContainer.appendChild(dayDiv);
+            calendarDaysContainer.appendChild(dayWrapper);
         }
 
-        function applyHighlight(element, targetClass) {
-            const currentClass = highlightClasses.find(c => element.classList.contains(c));
+        /**
+         * FUNGSI HIGHLIGHT UNTUK ELEMEN SVG
+         */
+        function applySvgHighlight(circleEl, textEl, colorKey) {
+            const targetHex = colorMap[colorKey];
+            const currentFill = circleEl.getAttribute("fill");
 
-            if (currentClass === targetClass) {
-                element.classList.remove("is-highlighted", currentClass, "font-bold", "text-gray-900");
-                element.classList.add("hover:bg-gray-100");
+            if (currentFill === targetHex) {
+                // Toggle Off (Reset ke transparan)
+                circleEl.setAttribute("fill", "transparent");
+                textEl.setAttribute("font-weight", "500");
+                textEl.setAttribute("fill", "#1f2937");
             } else {
-                element.classList.remove(...highlightClasses, "hover:bg-gray-100");
-                element.classList.add("is-highlighted", targetClass, "font-bold", "text-gray-900");
+                // Toggle On / Ganti Warna
+                circleEl.setAttribute("fill", targetHex);
+                textEl.setAttribute("font-weight", "700"); // Font bold saat aktif
+                textEl.setAttribute("fill", "#111827"); // Warna teks lebih gelap
             }
         }
 
+        // Animasi Pop-up Picker
         function openPicker(pickerEl) {
             if (activePicker && activePicker !== pickerEl) closePicker();
 
@@ -250,11 +282,12 @@
         }
 
         document.addEventListener("click", function(e) {
-            if (activePicker && !e.target.closest(".day-tile")) {
+            if (activePicker && !e.target.closest(".day-container")) {
                 closePicker();
             }
         });
 
+        // Proses Rendering Ekspor ke Gambar
         function generateCalendarCanvas() {
             closePicker();
             const card = document.getElementById("calendar-card");
@@ -264,6 +297,7 @@
                 useCORS: true,
                 logging: false,
                 onclone: (clonedDoc) => {
+                    // Hapus pop-up picker dari kloningan sebelum dijadikan gambar
                     const pickers = clonedDoc.querySelectorAll(".pop-picker");
                     pickers.forEach(el => el.remove());
                 }
