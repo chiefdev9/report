@@ -518,12 +518,10 @@
                 // Deteksi khusus HP/Mobile agar Web Share API TIDAK BERJALAN DI LAPTOP
                 const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-                // 1. HP / MOBILE ONLY: Pakai Native Share Sheet
+                // 1. HP / MOBILE ONLY: Share HANYA file gambar (tanpa text/title agar WA membuka mode full image + caption)
                 if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
-                        files: [file],
-                        title: 'Jadwal Les',
-                        text: `Jadwal Les ${currentSelectedStudent} (${monthNames[currentMonth]} ${currentYear})`
+                        files: [file]
                     });
                     showToast("Berhasil dibagikan!");
                     return;
