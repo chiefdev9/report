@@ -66,7 +66,7 @@
             </div>
         </div>
 
-        <div class="mt-6 border-t-2 border-gray-100 pt-4 flex flex-col gap-3">
+        <div class="mt-6 border-t border-gray-100 pt-4 flex flex-col gap-3">
             
             <!-- KOMPONEN DROPDOWN CUSTOM & TOMBOL SALIN -->
             <div class="flex w-full items-center gap-2 relative">
@@ -512,7 +512,7 @@
 
                 if (!blob) throw new Error("Gagal membuat Blob dari gambar.");
 
-                const fileName = `Jadwal_Les_${currentSelectedStudent}_${monthNames[currentMonth]}_${currentYear}.png`;
+                const fileName = `Rekap_${currentSelectedStudent}_${monthNames[currentMonth]}_${currentYear}.png`;
                 const file = new File([blob], fileName, { type: 'image/png' });
 
                 // Deteksi khusus HP/Mobile agar Web Share API TIDAK BERJALAN DI LAPTOP
