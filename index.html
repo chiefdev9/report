@@ -35,7 +35,6 @@
             pointer-events: none;
         }
 
-        /* Mengisolasi picker dari aturan touch-action parent */
         .pop-picker {
             touch-action: auto !important;
             pointer-events: auto !important;
@@ -72,9 +71,21 @@
                 Teliti <b>Nama Siswa</b>.
             </p>
 
-            <button id="btn-copy" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200 text-sm">
-                📋 Salin Gambar ke Clipboard
-            </button>
+            <!-- Dropdown Nama Murid & Tombol Salin -->
+            <div class="flex w-full items-center gap-2">
+                <div class="w-[80%]">
+                    <select id="select-student" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-3 rounded-lg text-sm border-r-8 border-transparent outline-none cursor-pointer transition duration-200">
+                        <option value="Zafi">1. Zafi</option>
+                        <option value="Jidan">2. Jidan</option>
+                    </select>
+                </div>
+
+                <button id="btn-copy" title="Salin Gambar ke Clipboard" class="w-[20%] h-[38px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg flex items-center justify-center transition duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -82,7 +93,7 @@
         <span>Gambar berhasil disalin ke clipboard!</span>
     </div>
 
-    <!-- SCRIPT SINKRONUS: Render grid kalender secara instan -->
+    <!-- SCRIPT SINKRONUS: Render Grid Kalender -->
     <script>
         const date = new Date();
         const currentYear = date.getFullYear();
@@ -141,7 +152,7 @@
         }
     </script>
 
-    <!-- SCRIPT MODULE: Firebase & Event Listeners -->
+    <!-- SCRIPT MODULE: Firebase Sync Per Murid -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
@@ -168,9 +179,50 @@
             "sky":     "#bae6fd"
         };
 
+        const selectStudent = document.getElementById("select-student");
         let activePicker = null;
         let pressTimer = null;
         let isLongPress = false;
+        
+        let scheduleData = {};
+        let unsubscribeSnapshot = null; // Menyimpan fungsi pembatal listener sebelumnya
+
+        // =========================================================================
+        // SINKRONISASI JADWAL TERHUBUNG KE NAMA MURID TERPILIH
+        // =========================================================================
+        function subscribeToStudentSchedule() {
+            // Unsubscribe listener lama agar tidak dobel saat ganti murid
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+            const selectedStudent = selectStudent.value;
+            // Menyimpan murid aktif ke localStorage untuk kenyamanan sesi lokal
+            localStorage.setItem("last_selected_student", selectedStudent);
+
+            // Document ID unik: TAHUN-BULAN_NAMAMURID (Contoh: 2026-9_Zafi)
+            const docId = `${currentYear}-${currentMonth + 1}_${selectedStudent}`;
+            const scheduleDocRef = doc(db, "les_schedules", docId);
+
+            unsubscribeSnapshot = onSnapshot(scheduleDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    scheduleData = docSnap.data();
+                } else {
+                    scheduleData = {};
+                }
+                renderAllHighlights();
+            });
+        }
+
+        // Ambil murid terakhir yang pernah dipilih jika ada
+        const lastStudent = localStorage.getItem("last_selected_student");
+        if (lastStudent && Array.from(selectStudent.options).some(o => o.value === lastStudent)) {
+            selectStudent.value = lastStudent;
+        }
+
+        // Panggil fungsi sinkronisasi awal
+        subscribeToStudentSchedule();
+
+        // Ganti data kalender setiap kali dropdown murid diganti
+        selectStudent.addEventListener("change", subscribeToStudentSchedule);
 
         for (let day = 1; day <= totalDays; day++) {
             const { circle, wrapper: dayWrapper } = window.dayElements[day];
@@ -178,7 +230,6 @@
             const pickerDiv = document.createElement("div");
             pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-40 transition-all duration-150 transform scale-95 opacity-0";
 
-            // Mencegah gesture parent membatalkan interaksi di dalam picker
             const preventBubble = (e) => e.stopPropagation();
             pickerDiv.addEventListener("touchstart", preventBubble, { passive: true });
             pickerDiv.addEventListener("touchend", preventBubble, { passive: true });
@@ -204,7 +255,6 @@
                     closePicker();
                 };
 
-                // Menggunakan pointerdown untuk eksekusi langsung saat disentuh/diklik
                 btn.addEventListener("pointerdown", selectColor);
                 pickerDiv.appendChild(btn);
             });
@@ -212,7 +262,6 @@
             dayWrapper.appendChild(pickerDiv);
 
             function startPress(e) {
-                // Abaikan jika yang disentuh adalah area picker/tombol warna
                 if (e.target.closest(".pop-picker")) return;
 
                 if (e.cancelable && e.type === "touchstart") {
@@ -261,23 +310,6 @@
             dayWrapper.addEventListener("mouseleave", cancelPress);
         }
 
-        // =========================================================================
-        // REAL-TIME FIRESTORE SYNC ENGINE
-        // =========================================================================
-        const docId = `${currentYear}-${currentMonth + 1}`;
-        const scheduleDocRef = doc(db, "les_schedules", docId);
-        let scheduleData = {};
-
-        onSnapshot(scheduleDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-                scheduleData = docSnap.data();
-                renderAllHighlights();
-            } else {
-                scheduleData = {};
-                renderAllHighlights();
-            }
-        });
-
         function renderAllHighlights() {
             for (let day = 1; day <= totalDays; day++) {
                 const { circle, text } = window.dayElements[day];
@@ -296,6 +328,10 @@
         }
 
         async function toggleHighlightAndSave(day, colorKey) {
+            const selectedStudent = selectStudent.value;
+            const docId = `${currentYear}-${currentMonth + 1}_${selectedStudent}`;
+            const scheduleDocRef = doc(db, "les_schedules", docId);
+
             const currentSavedColor = scheduleData[day];
 
             if (currentSavedColor === colorKey) {
@@ -400,7 +436,7 @@
                 } else {
                     const canvas = await generateCalendarCanvas();
                     const link = document.createElement('a');
-                    link.download = `Jadwal_Les_${monthNames[currentMonth]}_${currentYear}.png`;
+                    link.download = `Jadwal_Les_${selectStudent.value}_${monthNames[currentMonth]}_${currentYear}.png`;
                     link.href = canvas.toDataURL("image/png");
                     link.click();
                     showToast("Gambar diunduh!");
