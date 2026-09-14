@@ -1,25 +1,38 @@
 <!DOCTYPE html>
 <html lang="id">
-    <!-- html2canvas untuk mengubah HTML menjadi Gambar 
-     ####################
-        KODE INI BERHASIL DAN BERFUNGSI DENGAN BAIK, KODE INI ADALAH ENDPOINT 1
-        UNTUK PERBAIKAN DAN PENGEMBANGAN KEDEPAN
-     ####################
-     -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jadwal Pertemuan Les</title>
-    <!-- Tailwind CSS CDN -->
+    
+    <!-- 
+      =========================================================================
+      1. DEPENDENSI EKSTERNAL (UI & UTILITY)
+      =========================================================================
+      - Tailwind CSS: Framework Utility-first CSS untuk mempercepat styling UI.
+      - html2canvas: Library untuk merender / 'melukis' elemen DOM HTML menjadi
+        objek Canvas (Bitmap Gambar PNG) sehingga bisa diunduh atau disalin.
+      =========================================================================
+    -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- html2canvas untuk mengubah HTML menjadi Gambar -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <style>
+        /* 
+         * STYLING GLOBAL & FONTS:
+         * Menggunakan system font stack bawaan OS agar font terlihat native, 
+         * tajam, serta cepat dimuat di perangkat apa pun.
+         */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6;
+            background-color: #f3f4f6; /* Latar belakang abu-abu muda lembut (gray-100) */
         }
 
+        /* 
+         * DESAIN KONTAINER TANGGAL (UX HIT TARGET):
+         * Menentukan ukuran area sentuh (touch target) sebesar 36x36px.
+         * Ukuran ini ideal untuk kenyamanan jari pengguna saat melakukan tap/klik.
+         */
         .day-container {
             position: relative;
             width: 36px;
@@ -29,7 +42,10 @@
             justify-content: center;
         }
 
-        /* SVG dipaksa memenuhi kontainer */
+        /* 
+         * STYLING VEKTOR SVG:
+         * Dipaksa memenuhi kontainer agar presisi dan fleksibel terhadap respon render.
+         */
         .day-svg {
             width: 36px;
             height: 36px;
@@ -39,15 +55,31 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <!-- Container Utama -->
+    <!-- 
+      =========================================================================
+      2. STRUKTUR UTAMA WIDGET (UI CONTAINER)
+      =========================================================================
+      Menggunakan pendekatan Card Layout yang bersih dengan sudut melengkung (rounded-xl)
+      dan bayangan lembut (shadow-md) untuk memisahkan fokus konten dari background.
+    -->
     <div class="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
         
-        <!-- Area Kalender yang Akan Dijadikan Gambar/Di-share -->
+        <!-- 
+          AREA TANGKAPAN GAMBAR (#calendar-card):
+          Elemen ini yang nantinya akan di-capture oleh html2canvas. 
+          Semua elemen di dalam ID ini yang akan diubah menjadi gambar.
+        -->
         <div id="calendar-card" class="bg-white p-4 rounded-xl">
-            <!-- Judul Bulan & Tahun -->
+            
+            <!-- Judul Dinamis Bulan & Tahun -->
             <h2 id="month-year-title" class="text-xl font-bold text-gray-800 mb-6"></h2>
 
-            <!-- Header Hari (Minggu - Sabtu) -->
+            <!-- 
+              HEADER HARI (Grid 7 Kolom - Responsive UX):
+              Menggunakan Tailwind Responsive Utilities:
+              - Tampilan Mobile (< 640px): Menggunakan singkatan (Min, Sen, Sel...) agar hemat ruang.
+              - Tampilan Desktop (>= 640px): Memunculkan nama hari lengkap.
+            -->
             <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4 justify-items-center">
                 <div><span class="sm:hidden">Min</span><span class="hidden sm:block">Minggu</span></div>
                 <div><span class="sm:hidden">Sen</span><span class="hidden sm:block">Senin</span></div>
@@ -58,16 +90,26 @@
                 <div><span class="sm:hidden">Sab</span><span class="hidden sm:block">Sabtu</span></div>
             </div>
 
-            <!-- Grid Tanggal -->
+            <!-- GRID TANGGAL: Seluruh tanggal akan digenerate otomatis oleh JavaScript -->
             <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center">
-                <!-- Tanggal di-generate otomatis oleh JS -->
+                <!-- Dynamic Content via JS -->
             </div>
         </div>
 
-        <!-- Panel Kontrol Aksi -->
+        <!-- 
+          =====================================================================
+          3. PANEL KONTROL AKSI (UX BUTTONS)
+          =====================================================================
+          Terpisah dari area capture (#calendar-card) agar tombol tidak ikut
+          terfoto ke dalam gambar akhir kalender.
+        -->
         <div class="mt-6 border-t pt-4 flex flex-col gap-3">
-            <p class="text-xs text-gray-500 text-center">Klik tanggal untuk highlight. Tahan klik (long-press) untuk opsi warna.</p>
+            <!-- Teks Panduan Mikro (Microcopy UX) untuk memandu gestur pengguna -->
+            <p class="text-xs text-gray-500 text-center">
+                Klik tanggal untuk highlight. Tahan klik (long-press) untuk opsi warna.
+            </p>
 
+            <!-- Tombol Utama: Bagikan langsung ke Aplikasi WA -->
             <button onclick="shareToWhatsApp()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200">
                 <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
                     <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.705 1.754zm6.097-4.148l.377.224c1.474.874 3.167 1.335 4.891 1.337 5.207 0 9.444-4.237 9.447-9.445.002-2.523-.979-4.894-2.76-6.677-1.782-1.782-4.155-2.763-6.678-2.764-5.208 0-9.444 4.237-9.446 9.446-.001 1.831.523 3.617 1.517 5.176l.248.389-1.006 3.674 3.76-.986z"/>
@@ -75,32 +117,32 @@
                 Bagikan ke WhatsApp
             </button>
 
+            <!-- Tombol Sekunder: Salin Hasil ke Clipboard (Revisi dari tombol download) -->
             <button onclick="copyCalendarToClipboard()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200 text-sm">
-    📋 Salin Gambar ke Clipboard
-</button>
+                📋 Salin Gambar ke Clipboard
+            </button>
         </div>
     </div>
 
-    <!-- Toast Notification -->
-<div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none z-50 flex items-center gap-2">
-    <span>Gambar berhasil disalin ke clipboard!</span>
-</div>
+    <!-- 
+      =========================================================================
+      4. KOMPONEN TOAST NOTIFICATION (UI FEEDBACK)
+      =========================================================================
+      Pengganti alert() bawaan browser. Melayang secara fixed di tengah bawah layar.
+      Menggunakan kelas 'opacity-0' dan 'pointer-events-none' secara default agar tersembunyi.
+    -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none z-50 flex items-center gap-2">
+        <span>Gambar berhasil disalin ke clipboard!</span>
+    </div>
 
     <script>
         /**
          * =========================================================================
-         * SOLUSI VEKTOR SVG (100% TERKUNCI & PRESISI)
-         * =========================================================================
-         * Mengapa SVG Mengatasi Masalah Geser?
-         * 1. Elemen <circle> menggunakan koordinat pusat (cx="18" cy="18").
-         * 2. Elemen <text> diposisikan di titik pusat (x="18" y="18") dengan 
-         *    atribut `text-anchor="middle"` dan `dominant-baseline="central"`.
-         * 3. Atribut `dominant-baseline="central"` memaksa browser dan html2canvas 
-         *    mengunci sumbu Y teks persis di tengah matematis lingkaran, mengabaikan 
-         *    sifat font-baseline bawaan OS.
+         * 5. LOGIKA APLIKASI (JAVASCRIPT)
          * =========================================================================
          */
 
+        // Mengambil Waktu Sekarang secara Otomatis
         const date = new Date();
         const currentYear = date.getFullYear();
         const currentMonth = date.getMonth();
@@ -110,46 +152,51 @@
             "Juli", "Agustus", "September", "Oktober", "November", "Desember"
         ];
 
+        // Set Judul Bulan & Tahun di UI
         document.getElementById("month-year-title").innerText = `${monthNames[currentMonth]} ${currentYear}`;
         const calendarDaysContainer = document.getElementById("calendar-days");
 
+        // Menghitung Hari Pertama dalam Bulan & Total Hari
         const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
         const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
+        // Variable State untuk Gestur Interaksi Pengguna
         let activePicker = null;
         let pressTimer = null;
         let isLongPress = false;
 
-        // Kode warna Hex untuk SVG fill
+        // Pemetaan Kode Warna Hex untuk Lingkaran Highlight SVG
         const colorMap = {
-            "emerald": "#a7f3d0", // bg-emerald-200
-            "yellow":  "#fef08a", // bg-yellow-200
-            "rose":    "#fecdd3", // bg-rose-200
-            "sky":     "#bae6fd"  // bg-sky-200
+            "emerald": "#a7f3d0", // Hijau lembut
+            "yellow":  "#fef08a", // Kuning lembut
+            "rose":    "#fecdd3", // Merah muda
+            "sky":     "#bae6fd"  // Biru muda
         };
 
-        // Render cell kosong sebelum tanggal 1
+        /*
+         * RENDER SLOT KOSONG:
+         * Membuat div transparan jika hari ke-1 tidak jatuh di hari Minggu (offset grid)
+         */
         for (let x = 0; x < firstDayIndex; x++) {
             const emptyDiv = document.createElement("div");
             emptyDiv.className = "w-9 h-9";
             calendarDaysContainer.appendChild(emptyDiv);
         }
 
-        // Render Tanggal 1 s/d Selesai
+        /*
+         * RENDER TANGGAL (1 s/d Total Hari):
+         * Dibuat menggunakan elemen SVG Murni untuk menjamin kepresisian bentuk lingkaran & posisi teks.
+         */
         for (let day = 1; day <= totalDays; day++) {
             const dayWrapper = document.createElement("div");
             dayWrapper.className = "day-container cursor-pointer select-none";
 
-            /*
-             * MEMBUAT ELEMEN SVG DINAMIS:
-             * Seluruh komponen tanggal (lingkaran & teks) digambar sebagai VEKTOR.
-             */
             const svgNS = "http://www.w3.org/2000/svg";
             const svg = document.createElementNS(svgNS, "svg");
             svg.setAttribute("viewBox", "0 0 36 36");
             svg.setAttribute("class", "day-svg");
 
-            // 1. Elemen Lingkaran Background
+            // 1. SVG Circle (Highlight Latar Tanggal)
             const circle = document.createElementNS(svgNS, "circle");
             circle.setAttribute("cx", "18");
             circle.setAttribute("cy", "18");
@@ -157,25 +204,28 @@
             circle.setAttribute("fill", "transparent");
             circle.setAttribute("class", "transition-colors duration-150");
 
-            // 2. Elemen Teks Angka
+            /* 
+             * 2. SVG Text (Angka Tanggal) - PENYELESAIAN BUG BLANK PUTIH:
+             * Atribut `dominant-baseline="central"` dihapus karena menyebabkan html2canvas crash/render transparan.
+             * Sebagai gantinya, koordinat y disesuaikan secara manual ke y="23" agar teks berdiri tepat di tengah lingkaran.
+             */
             const text = document.createElementNS(svgNS, "text");
             text.setAttribute("x", "18");
-            text.setAttribute("y", "18");
+            text.setAttribute("y", "23"); // Koordinat titik tengah vertikal aman bagi html2canvas
             text.setAttribute("text-anchor", "middle");
-            text.setAttribute("dominant-baseline", "central"); // Kunci simetri vertikal teks!
             text.setAttribute("font-size", "14");
             text.setAttribute("font-weight", "500");
-            text.setAttribute("fill", "#1f2937"); // text-gray-800
+            text.setAttribute("fill", "#1f2937"); // Gray 800
             text.textContent = day;
 
             svg.appendChild(circle);
             svg.appendChild(text);
             dayWrapper.appendChild(svg);
 
-            // Hover effect via JS sederhana pada SVG Circle
+            // Visual Feedback: Hover effect saat kursor melintas
             dayWrapper.addEventListener("mouseenter", () => {
                 if (circle.getAttribute("fill") === "transparent") {
-                    circle.setAttribute("fill", "#f3f4f6"); // hover:bg-gray-100
+                    circle.setAttribute("fill", "#f3f4f6");
                 }
             });
             dayWrapper.addEventListener("mouseleave", () => {
@@ -184,7 +234,10 @@
                 }
             });
 
-            // Pop-up Color Picker (Menggunakan HTML Biasa Melayang di Atas SVG)
+            /*
+             * POP-UP COLOR PICKER (UX INTERAKSI TAMBAHAN):
+             * Muncul saat gestur Long Press dilakukan.
+             */
             const pickerDiv = document.createElement("div");
             pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-30 transition-all duration-150 transform scale-95 opacity-0";
             
@@ -210,7 +263,10 @@
 
             dayWrapper.appendChild(pickerDiv);
 
-            // Logika Gestur Long Press
+            /*
+             * DETEKSI GESTUR LONG-PRESS (Mobile & Desktop UX):
+             * Menahan klik selama 500ms akan memicu pop-up pilihan warna.
+             */
             function startPress(e) {
                 isLongPress = false;
                 pressTimer = setTimeout(() => {
@@ -231,7 +287,7 @@
             dayWrapper.addEventListener("touchend", cancelPress);
             dayWrapper.addEventListener("touchcancel", cancelPress);
 
-            // Klik Standar (Default Emerald)
+            // Klik Singkat (Default Toggle Warna Emerald)
             dayWrapper.onclick = function(e) {
                 if (e.target.closest(".pop-picker")) return;
 
@@ -247,27 +303,26 @@
             calendarDaysContainer.appendChild(dayWrapper);
         }
 
-        /**
-         * FUNGSI HIGHLIGHT UNTUK ELEMEN SVG
+        /*
+         * HELPER TOGGLE HIGHLIGHT TANGGAL:
+         * Mengatur state aktif/tidak aktif pada elemen lingkaran SVG dan bobot font teks.
          */
         function applySvgHighlight(circleEl, textEl, colorKey) {
             const targetHex = colorMap[colorKey];
             const currentFill = circleEl.getAttribute("fill");
 
             if (currentFill === targetHex) {
-                // Toggle Off (Reset ke transparan)
                 circleEl.setAttribute("fill", "transparent");
                 textEl.setAttribute("font-weight", "500");
                 textEl.setAttribute("fill", "#1f2937");
             } else {
-                // Toggle On / Ganti Warna
                 circleEl.setAttribute("fill", targetHex);
-                textEl.setAttribute("font-weight", "700"); // Font bold saat aktif
-                textEl.setAttribute("fill", "#111827"); // Warna teks lebih gelap
+                textEl.setAttribute("font-weight", "700");
+                textEl.setAttribute("fill", "#111827");
             }
         }
 
-        // Animasi Pop-up Picker
+        // FUNGSI ANIMASI KONTROL PICKER POP-UP
         function openPicker(pickerEl) {
             if (activePicker && activePicker !== pickerEl) closePicker();
 
@@ -298,75 +353,98 @@
             }
         });
 
-        // Proses Rendering Ekspor ke Gambar
+        /**
+         * =========================================================================
+         * 6. FUNGSI GENERATE CANVAS & EXPORT GAMBAR (CORE ENGINE)
+         * =========================================================================
+         * Fungsi ini membaca elemen DOM #calendar-card dan mengubahnya menjadi Objek Canvas.
+         */
         function generateCalendarCanvas() {
             closePicker();
             const card = document.getElementById("calendar-card");
 
             return html2canvas(card, { 
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: "#ffffff", // disini gengs?
+                scale: 2,                  // Memperbesar resolusi render 2x lipat agar gambar tajam / HD
+                useCORS: true,             // Mengizinkan pemuatan resource lintas domain (bila ada)
+                logging: false,            // Mematikan log debugging di console
+                backgroundColor: "#ffffff",// PENYELESAIAN BLANK: Memaksa Latar belakang gambar menjadi Putih Padat
                 onclone: (clonedDoc) => {
-                    // Hapus pop-up picker dari kloningan sebelum dijadikan gambar
+                    // Pembersihan sebelum foto diambil: Hapus semua pop-up picker dari elemen kloningan
                     const pickers = clonedDoc.querySelectorAll(".pop-picker");
                     pickers.forEach(el => el.remove());
+
+                    // Memastikan background pada hasil kloningan tidak bernilai transparan
+                    const clonedCard = clonedDoc.getElementById("calendar-card");
+                    if (clonedCard) {
+                        clonedCard.style.backgroundColor = "#ffffff";
+                    }
                 }
             });
         }
 
-        // fungsi salin gambar ke perangkat
+        /**
+         * =========================================================================
+         * 7. FUNGSI UTILITY: TOAST NOTIFICATION
+         * =========================================================================
+         * Menampilkan notifikasi non-intrusif di bagian bawah layar selama 2 detik.
+         */
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.querySelector("span").innerText = message;
+            
+            toast.classList.remove("opacity-0", "pointer-events-none");
+            toast.classList.add("opacity-100");
 
+            setTimeout(() => {
+                toast.classList.remove("opacity-100");
+                toast.classList.add("opacity-0", "pointer-events-none");
+            }, 2000);
+        }
+
+        /**
+         * =========================================================================
+         * 8. FUNGSI UTAMA: SALIN GAMBAR KE CLIPBOARD
+         * =========================================================================
+         * Menggunakan Clipboard API modern (`navigator.clipboard.write`) untuk 
+         * menyimpan objek Blob PNG langsung ke memori clipboard pengguna.
+         */
         async function copyCalendarToClipboard() {
-    try {
-        const canvas = await generateCalendarCanvas();
-        
-        canvas.toBlob(async (blob) => {
-            if (!blob) {
-                alert("Gagal memproses gambar.");
-                return;
-            }
-
-            // Memeriksa dukungan Clipboard Item API
-            if (navigator.clipboard && window.ClipboardItem) {
-                const item = new ClipboardItem({ "image/png": blob });
-                await navigator.clipboard.write([item]);
+            try {
+                const canvas = await generateCalendarCanvas();
                 
-                // Beri umpan balik ke pengguna
-                showToast("Gambar berhasil disalin ke clipboard!");
-            } else {
-                showToast("Fitur salin gambar tidak didukung di browser ini. Menjalankan fallback download...");
-                // Fallback otomatis download jika browser tidak mendukung
-                const link = document.createElement('a');
-                link.download = `Jadwal_Les_${monthNames[currentMonth]}_${currentYear}.png`;
-                link.href = canvas.toDataURL("image/png");
-                link.click();
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        showToast("Gagal memproses gambar.");
+                        return;
+                    }
+
+                    // Pengecekan Dukungan Browser terhadap Clipboard Item API
+                    if (navigator.clipboard && window.ClipboardItem) {
+                        const item = new ClipboardItem({ "image/png": blob });
+                        await navigator.clipboard.write([item]);
+                        
+                        showToast("Gambar berhasil disalin ke clipboard!");
+                    } else {
+                        // Fallback jika browser sangat lama dan tidak mendukung Clipboard API
+                        showToast("Browser tidak mendukung salin otomatis. Mengunduh gambar...");
+                        const link = document.createElement('a');
+                        link.download = `Jadwal_Les_${monthNames[currentMonth]}_${currentYear}.png`;
+                        link.href = canvas.toDataURL("image/png");
+                        link.click();
+                    }
+                }, 'image/png');
+            } catch (err) {
+                console.error("Gagal menyalin gambar:", err);
+                showToast("Gagal menyalin gambar ke clipboard.");
             }
-        }, 'image/png');
-    } catch (err) {
-        console.error("Gagal menyalin gambar:", err);
-        showToast("Gagal menyalin gambar ke clipboard.");
-    }
+        }
 
-
-    // perbaharui alert bawaan jadi lebih modern dengan toast
-    function showToast(message) {
-    const toast = document.getElementById("toast");
-    toast.querySelector("span").innerText = message;
-    
-    // Tampilkan Toast
-    toast.classList.remove("opacity-0", "pointer-events-none");
-    toast.classList.add("opacity-100");
-
-    // Sembunyikan otomatis setelah 2 detik
-    setTimeout(() => {
-        toast.classList.remove("opacity-100");
-        toast.classList.add("opacity-0", "pointer-events-none");
-    }, 2000);
-}
-}
-
+        /**
+         * =========================================================================
+         * 9. FUNGSI UTAMA: BAGIKAN KE WHATSAPP (NATIVE SHARE)
+         * =========================================================================
+         * Memanfaatkan Web Share API (`navigator.share`) untuk memicu menu bagikan bawaan OS.
+         */
         async function shareToWhatsApp() {
             const canvas = await generateCalendarCanvas();
             
@@ -384,8 +462,8 @@
                         console.log("Share dibatalkan/gagal", err);
                     }
                 } else {
-                    downloadCalendar();
-                    const text = encodeURIComponent(`Halo, berikut jadwal pertemuan les untuk bulan ${monthNames[currentMonth]} ${currentYear}.\n\n*(Gambar kalender telah ter-download otomatis, silakan lampirkan gambar tersebut di pesan ini)*`);
+                    // Fallback jika Web Share API tidak didukung pada browser desktop tertentu
+                    const text = encodeURIComponent(`Halo, berikut jadwal pertemuan les untuk bulan ${monthNames[currentMonth]} ${currentYear}.`);
                     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
                 }
             }, 'image/png');
