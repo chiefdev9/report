@@ -85,7 +85,7 @@
                     <div id="custom-dropdown-menu" class="hidden absolute left-0 right-0 bottom-full mb-2 bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-xl p-1.5 z-50 transition-all duration-200 opacity-0 scale-95 transform origin-bottom">
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-1.5">Nama Murid</div>
                         <ul id="student-list-options" class="flex flex-col gap-0.5">
-                            <!-- Daftar Murid (Dapat ditambah/edit dengan mudah di atribut data-value) -->
+                            <!-- Daftar Murid -->
                              <li data-value="Arka" class="student-option px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between transition-colors">
                                 <span>Arka</span>
                                 <svg class="check-icon w-4 h-4 text-gray-800 hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
@@ -495,38 +495,51 @@
             }, 2000);
         }
 
+        // Helper Konversi Canvas ke Blob secara Asynchronous
+        function canvasToBlobAsync(canvas, type = 'image/png') {
+            return new Promise((resolve) => {
+                canvas.toBlob((blob) => resolve(blob), type);
+            });
+        }
+
+        // Logika Penyalinan Gambar yang Kompatibel dengan Android & Desktop
         async function copyCalendarToClipboard() {
-            showToast("Salin gambar ke clipboard...");
+            showToast("Memproses gambar...");
 
             try {
+                // 1. Generate Canvas & Blob sebelum memanggil Clipboard API untuk menghindari expired gesture di Android
+                const canvas = await generateCalendarCanvas();
+                const blob = await canvasToBlobAsync(canvas, 'image/png');
+
+                if (!blob) throw new Error("Gagal membuat Blob dari gambar.");
+
+                // 2. Cek apakah navigator.clipboard didukung
                 if (navigator.clipboard && window.ClipboardItem) {
-                    const clipboardPromise = new Promise(async (resolve, reject) => {
-                        try {
-                            const canvas = await generateCalendarCanvas();
-                            canvas.toBlob((blob) => {
-                                if (blob) resolve(blob);
-                                else reject(new Error("Blob gagal dibuat"));
-                            }, 'image/png');
-                        } catch (e) {
-                            reject(e);
-                        }
-                    });
-
-                    const item = new ClipboardItem({ "image/png": clipboardPromise });
-                    await navigator.clipboard.write([item]);
-
-                    showToast("Gambar berhasil disalin!");
-                } else {
-                    const canvas = await generateCalendarCanvas();
-                    const link = document.createElement('a');
-                    link.download = `Jadwal_Les_${currentSelectedStudent}_${monthNames[currentMonth]}_${currentYear}.png`;
-                    link.href = canvas.toDataURL("image/png");
-                    link.click();
-                    showToast("Gambar diunduh!");
+                    try {
+                        const item = new ClipboardItem({ [blob.type]: blob });
+                        await navigator.clipboard.write([item]);
+                        showToast("Gambar berhasil disalin!");
+                        return;
+                    } catch (clipboardErr) {
+                        console.warn("Clipboard OS memblokir akses direct write, menggunakan fallback download...", clipboardErr);
+                    }
                 }
+
+                // 3. Fallback jika Clipboard API diblokir oleh OS Android/Webview
+                const downloadUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = `Jadwal_Les_${currentSelectedStudent}_${monthNames[currentMonth]}_${currentYear}.png`;
+                link.href = downloadUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+                showToast("Gambar diunduh (clipboard diblokir HP)");
+
             } catch (err) {
-                console.error("Gagal menyalin gambar:", err);
-                showToast("❌ Gagal menyalin gambar.");
+                console.error("Gagal memproses gambar:", err);
+                showToast("❌ Gagal memproses gambar.");
             }
         }
 
