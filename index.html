@@ -502,12 +502,11 @@
             });
         }
 
-        // Fungsi Utama Share / Copy Gambar (Android & Laptop Ready)
+        // Fungsi Utama Share / Copy Gambar
         async function copyCalendarToClipboard() {
             showToast("Memproses gambar...");
 
             try {
-                // 1. Generate Canvas & Buat File Blob
                 const canvas = await generateCalendarCanvas();
                 const blob = await canvasToBlobAsync(canvas, 'image/png');
 
@@ -516,8 +515,11 @@
                 const fileName = `Jadwal_Les_${currentSelectedStudent}_${monthNames[currentMonth]}_${currentYear}.png`;
                 const file = new File([blob], fileName, { type: 'image/png' });
 
-                // 2. SOLUSI HP ANDROID: Menggunakan Web Share API
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                // Deteksi khusus HP/Mobile agar Web Share API TIDAK BERJALAN DI LAPTOP
+                const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+                // 1. HP / MOBILE ONLY: Pakai Native Share Sheet
+                if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
                         title: 'Jadwal Les',
@@ -527,7 +529,7 @@
                     return;
                 }
 
-                // 3. SOLUSI LAPTOP/DESKTOP: Salin Langsung ke Clipboard
+                // 2. LAPTOP / DESKTOP ONLY: Langsung Salin ke Clipboard (Pakai Toast bawaan, tanpa pop-up)
                 if (navigator.clipboard && window.ClipboardItem) {
                     try {
                         const item = new ClipboardItem({ [blob.type]: blob });
@@ -539,7 +541,7 @@
                     }
                 }
 
-                // 4. FALLBACK TERAKHIR: Auto Download jika browser memblokir izin
+                // 3. FALLBACK TERAKHIR: Auto Download
                 const downloadUrl = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.download = fileName;
@@ -552,7 +554,7 @@
                 showToast("Gambar diunduh!");
 
             } catch (err) {
-                if (err.name !== 'AbortError') { // Jangan tampilkan error jika user cuma membatalkan menu Share
+                if (err.name !== 'AbortError') {
                     console.error("Gagal memproses gambar:", err);
                     showToast("❌ Gagal memproses gambar.");
                 }
