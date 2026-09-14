@@ -15,20 +15,45 @@
         }
 
         /* 
-         * FIX PERGESERAN RENDERING CANVAS (CRITICAL FIX):
-         * html2canvas sering salah menghitung posisi angka jika menggunakan Flexbox centering (flex items-center justify-center).
-         * Sebagai gantinya, kita paksa elemen tanggal berukuran pasti (fixed size) 
-         * dan menggunakan 'line-height' yang identik dengan tingginya untuk meratakan teks persis di tengah secara vertikal.
+         * FIX PRESISI TERBAIK UNTUK HTML2CANVAS:
+         * 1. Elemen induk (.day-tile) menjadi penampung utama yang relatif.
+         * 2. Background lingkaran digambar melalui pseudo-element ::before.
+         * 3. Teks angka diberi z-index lebih tinggi (z-10) agar selalu berada di atas lingkaran.
          */
         .day-tile {
-            width: 36px !important;
-            height: 36px !important;
-            line-height: 36px !important;
-            text-align: center !important;
-            display: inline-block !important;
-            border-radius: 9999px !important; /* Membuat bentuk lingkaran sempurna */
-            box-sizing: border-box !important;
+            position: relative;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            user-select: none;
         }
+
+        /* Teks tanggal diposisikan secara eksplisit di atas background */
+        .day-text {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Pseudo-element untuk membuat lingkaran highlighter yang presisi */
+        .day-tile.is-highlighted::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 9999px;
+            z-index: 1;
+        }
+
+        /* Opsi variasi warna background via pseudo-element */
+        .day-tile.hl-emerald::before { background-color: #a7f3d0; } /* emerald-200 */
+        .day-tile.hl-yellow::before  { background-color: #fef08a; } /* yellow-200 */
+        .day-tile.hl-rose::before    { background-color: #fecdd3; } /* rose-200 */
+        .day-tile.hl-sky::before     { background-color: #bae6fd; } /* sky-200 */
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
@@ -73,11 +98,7 @@
                 </div>
             </div>
 
-            <!-- 
-                GRID TANGGAL:
-                Menambahkan 'justify-items-center' agar setiap item tanggal diposisikan tepat 
-                di tengah grid-cell masing-masing tanpa mengandalkan 'mx-auto' pada child-element.
-            -->
+            <!-- Grid Tanggal -->
             <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center">
                 <!-- Tanggal di-generate otomatis oleh JS -->
             </div>
@@ -103,18 +124,16 @@
     <script>
         /**
          * =========================================================================
-         * PENJELASAN INTEGRASI UX & OPTIMASI KANVAS (PRESET PERSISI BERSAMA HTML2CANVAS)
+         * PENJELASAN TEKNIS PERBAIKAN OFFLINE BACKGROUND
          * =========================================================================
-         * Masalah Utama Gambar Tidak Presisi:
-         * 1. html2canvas kesulitan menerjemahkan Flexbox dinamik (`flex items-center justify-center`) 
-         *    sehingga baseline teks dan background lingkaran sering offset (geser beberapa piksel).
-         * 2. Keberadaan elemen melayang yang memiliki CSS `position: absolute` (Pop-up Color Picker) 
-         *    walau disembunyikan tetap merusak kalkulasi koordinat DOM oleh pustaka ekspor.
-         *
-         * Solusi yang Diterapkan:
-         * 1. Mengganti Flexbox tanggal menjadi CSS Klasik (`display: inline-block` + `line-height`).
-         * 2. Menggunakan Fitur 'onclone' bawaan html2canvas untuk MENULIS ULANG (Membuang) 
-         *    semua DOM Pop-up Picker sebelum canvas dirender. Hasilnya, gambar murni hanya kalender bersih.
+         * 1. Mengapa sebelumnya lingkaran tergeser?
+         *    html2canvas sering kebingungan menghitung margin/padding internal ketika 
+         *    background dipasang langsung di elemen yang sama dengan teks yang memakai Flexbox.
+         * 
+         * 2. Solusi Pseudo-Element (`::before`):
+         *    Dengan menaruh background di elemen khusus `::before` yang berukuran 100% (top:0, left:0), 
+         *    html2canvas dipaksa menggambar lingkaran tepat menutupi sel seluas 36x36px. 
+         *    Teks angka (`.day-text`) kemudian ditaruh di atasnya (`z-index: 10`) secara independen.
          * =========================================================================
          */
 
@@ -137,36 +156,36 @@
         let pressTimer = null;
         let isLongPress = false;
 
-        const highlightColors = ["bg-emerald-200", "bg-yellow-200", "bg-rose-200", "bg-sky-200"];
+        // Pemetaan kelas CSS untuk warna highlighter
+        const highlightClasses = ["hl-emerald", "hl-yellow", "hl-rose", "hl-sky"];
 
         // Render cell kosong sebelum tanggal 1
         for (let x = 0; x < firstDayIndex; x++) {
             const emptyDiv = document.createElement("div");
-            emptyDiv.className = "w-9 h-9"; // Samakan ukuran dengan tanggal agar grid sejajar
+            emptyDiv.className = "w-9 h-9";
             calendarDaysContainer.appendChild(emptyDiv);
         }
 
         // Render Tanggal 1 s/d Selesai
         for (let day = 1; day <= totalDays; day++) {
             const dayDiv = document.createElement("div");
-            
-            /* 
-             * Menerapkan class khusus '.day-tile' yang sudah diisi properti line-height 
-             * agar presisi saat dikonversi html2canvas.
-             */
-            dayDiv.className = "relative day-tile cursor-pointer hover:bg-gray-100 transition select-none";
-            dayDiv.innerText = day;
+            dayDiv.className = "day-tile cursor-pointer hover:bg-gray-100 transition";
 
-            // Template Pop-up Color Picker
+            // Bungkus angka ke dalam span terpisah agar teks tidak mengacak posisi background
+            const textSpan = document.createElement("span");
+            textSpan.className = "day-text";
+            textSpan.innerText = day;
+            dayDiv.appendChild(textSpan);
+
+            // Pop-up Color Picker
             const pickerDiv = document.createElement("div");
-            // Menambahkan marker kelas 'pop-picker' agar mudah diidentifikasi & dihapus saat proses ekspor gambar
-            pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-20 transition-all duration-150 transform scale-95 opacity-0";
+            pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-30 transition-all duration-150 transform scale-95 opacity-0";
             
             const colors = [
-                { bg: "bg-emerald-200", dot: "bg-emerald-400" },
-                { bg: "bg-yellow-200", dot: "bg-yellow-400" },
-                { bg: "bg-rose-200", dot: "bg-rose-400" },
-                { bg: "bg-sky-200", dot: "bg-sky-400" }
+                { classKey: "hl-emerald", dot: "bg-emerald-400" },
+                { classKey: "hl-yellow", dot: "bg-yellow-400" },
+                { classKey: "hl-rose", dot: "bg-rose-400" },
+                { classKey: "hl-sky", dot: "bg-sky-400" }
             ];
 
             colors.forEach(c => {
@@ -176,7 +195,7 @@
                 
                 btn.onclick = function(e) {
                     e.stopPropagation();
-                    applyHighlight(dayDiv, c.bg);
+                    applyHighlight(dayDiv, c.classKey);
                     closePicker();
                 };
                 pickerDiv.appendChild(btn);
@@ -184,7 +203,7 @@
 
             dayDiv.appendChild(pickerDiv);
 
-            // Logika Long Press (Tahan Klik)
+            // Logika Long Press
             function startPress(e) {
                 isLongPress = false;
                 pressTimer = setTimeout(() => {
@@ -205,7 +224,7 @@
             dayDiv.addEventListener("touchend", cancelPress);
             dayDiv.addEventListener("touchcancel", cancelPress);
 
-            // Action Klik Biasa (Toggle Default Emerald)
+            // Action Klik Biasa (Default Emerald)
             dayDiv.onclick = function(e) {
                 if (e.target.closest(".pop-picker")) return;
 
@@ -215,22 +234,24 @@
                 }
 
                 closePicker();
-                applyHighlight(dayDiv, "bg-emerald-200");
+                applyHighlight(dayDiv, "hl-emerald");
             };
 
             calendarDaysContainer.appendChild(dayDiv);
         }
 
-        // Fungsi Toggle Highlight
-        function applyHighlight(element, targetColorClass) {
-            const currentColor = highlightColors.find(color => element.classList.contains(color));
+        // Fungsi Toggle Highlight Menggunakan Pseudo-class
+        function applyHighlight(element, targetClass) {
+            const currentClass = highlightClasses.find(c => element.classList.contains(c));
 
-            if (currentColor === targetColorClass) {
-                element.classList.remove(currentColor, "text-gray-900", "font-bold");
+            if (currentClass === targetClass) {
+                // Hapus highlight
+                element.classList.remove("is-highlighted", currentClass, "font-bold", "text-gray-900");
                 element.classList.add("hover:bg-gray-100");
             } else {
-                element.classList.remove(...highlightColors, "hover:bg-gray-100");
-                element.classList.add(targetColorClass, "text-gray-900", "font-bold");
+                // Pasang highlight baru
+                element.classList.remove(...highlightClasses, "hover:bg-gray-100");
+                element.classList.add("is-highlighted", targetClass, "font-bold", "text-gray-900");
             }
         }
 
@@ -260,38 +281,28 @@
         }
 
         document.addEventListener("click", function(e) {
-            if (activePicker && !e.target.closest(".relative")) {
+            if (activePicker && !e.target.closest(".day-tile")) {
                 closePicker();
             }
         });
 
-        /**
-         * =========================================================================
-         * OPTIMASI FUNGSI KANVAS ELEMEN KALENDER (GENERATING PICTURE)
-         * =========================================================================
-         * Menggunakan Callback `onclone`:
-         * `html2canvas` akan menduplikat elemen HTML di latar belakang sebelum memproses gambar.
-         * Lewat `onclone`, kita me-remove semua elemen `.pop-picker` secara paksa dari 
-         * dokumen kloningan agar tidak merusak perhitungan tata letak koordinat canvas.
-         * =========================================================================
-         */
+        // Ekspor Gambar yang Presisi
         function generateCalendarCanvas() {
             closePicker();
             const card = document.getElementById("calendar-card");
 
             return html2canvas(card, { 
-                scale: 2,           // Memperjelas kualitas resolusi gambar (Retina Ready)
-                useCORS: true,       // Menghindari issue CORS jika ada resource eksternal
-                logging: false,      // Mematikan log di console browser
+                scale: 2,
+                useCORS: true,
+                logging: false,
                 onclone: (clonedDoc) => {
-                    // Cari dan bersihkan elemen pop-up picker dari dokumen salinan
+                    // Hapus pop-up picker dari kloningan sebelum dijadikan gambar
                     const pickers = clonedDoc.querySelectorAll(".pop-picker");
                     pickers.forEach(el => el.remove());
                 }
             });
         }
 
-        // Ekspor ke Berkas Gambar (PNG)
         function downloadCalendar() {
             generateCalendarCanvas().then(canvas => {
                 const link = document.createElement('a');
@@ -301,7 +312,6 @@
             });
         }
 
-        // Share Fitur Berkas ke Aplikasi WhatsApp
         async function shareToWhatsApp() {
             const canvas = await generateCalendarCanvas();
             
