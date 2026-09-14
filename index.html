@@ -119,7 +119,7 @@
                     </button>
 
                     <div id="custom-dropdown-menu" class="hidden absolute left-0 right-0 bottom-full mb-2 bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-xl p-1.5 z-50 transition-all duration-200 opacity-0 scale-95 transform origin-bottom">
-                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-1.5">Daftar Nama</div>
+                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-1.5">Nama Murid</div>
                         <ul id="student-list-options" class="flex flex-col gap-0.5">
                             <li data-value="Arka" class="student-option px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between transition-colors">
                                 <span>Arka</span>
@@ -153,7 +153,7 @@
     </div>
 
     <!-- ====================================================================
-         SCRIPT 1 (SINKRONUS): RENDER DYNAMIC GRID KALENDER
+         SCRIPT 1 (SINKRONUS): RENDER DYNAMIC GRID KALENDER (STANDAR 5 BARIS)
          ==================================================================== -->
     <script>
         const date = new Date();
@@ -198,7 +198,7 @@
             return { dayWrapper, circle, text, isCurrentMonth };
         }
 
-        // Fungsi Global Render Grid (Selalu 42 Sel / 6 Baris Konsisten)
+        // Fungsi Global Render Grid (Standar 5 Baris / 35 Sel)
         window.renderCalendarGrid = function(year, month) {
             document.getElementById("month-year-title").innerText = `${monthNames[month]} ${year}`;
             const calendarDaysContainer = document.getElementById("calendar-days");
@@ -227,25 +227,16 @@
                 calendarDaysContainer.appendChild(dayWrapper);
             }
 
-            // 3. Tanggal Bulan Depan (Offset Kanan) - Genapkan Selalu ke 42 Sel
+            // 3. Tanggal Bulan Depan (Offset Kanan)
             const totalRenderedSoFar = firstDayIndex + totalDays;
-            const nextDaysCount = 42 - totalRenderedSoFar; 
-
-            // Cek apakah baris ke-6 (indeks sel 35-41) sepenuhnya diisi oleh bulan depan
-            const isSixthRowFullOffset = totalRenderedSoFar <= 35;
+            
+            // Patokan utama: 35 sel (5 baris). Jika bulan ini butuh lebih dari 35 sel, gunakan 42 sel (6 baris).
+            const targetTotalCells = totalRenderedSoFar > 35 ? 42 : 35;
+            const nextDaysCount = targetTotalCells - totalRenderedSoFar;
 
             for (let j = 1; j <= nextDaysCount; j++) {
-                const currentCellIndex = totalRenderedSoFar + j - 1; // 0..41
                 const cellKey = `next_${j}`;
                 const { dayWrapper, circle, text, isCurrentMonth } = createDaySvg(j, false, cellKey);
-
-                // Jika baris ke-6 sepenuhnya bulan baru, sembunyikan visualnya (visibility: hidden)
-                // Ini mempertahankan tinggi kartu secara konsisten tanpa merusak layout
-                if (isSixthRowFullOffset && currentCellIndex >= 35) {
-                    dayWrapper.style.visibility = "hidden";
-                    dayWrapper.classList.add("pointer-events-none");
-                }
-
                 window.dayElements[cellKey] = { circle, text, wrapper: dayWrapper, isCurrentMonth };
                 calendarDaysContainer.appendChild(dayWrapper);
             }
