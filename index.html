@@ -15,45 +15,43 @@
         }
 
         /* 
-         * FIX PRESISI TERBAIK UNTUK HTML2CANVAS:
-         * 1. Elemen induk (.day-tile) menjadi penampung utama yang relatif.
-         * 2. Background lingkaran digambar melalui pseudo-element ::before.
-         * 3. Teks angka diberi z-index lebih tinggi (z-10) agar selalu berada di atas lingkaran.
+         * FIX PERMANEN OFFLINE BASELINE HTML2CANVAS:
+         * Menggunakan Grid Centering murni tanpa flexbox padding.
+         * Kita matikan line-height default browser agar baseline font tidak menekan angka ke bawah.
          */
         .day-tile {
             position: relative;
             width: 36px;
             height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: grid;
+            place-items: center;
             border-radius: 9999px;
             user-select: none;
+            line-height: 1 !important; /* Kunci utama: Menghilangkan space kosong di bawah font */
         }
 
-        /* Teks tanggal diposisikan secara eksplisit di atas background */
+        /* Teks tanggal diposisikan tepat di tengah */
         .day-text {
             position: relative;
             z-index: 10;
+            display: block;
+            transform: translateY(-0.5px); /* Fine-tuning posisi piksel angka */
         }
 
-        /* Pseudo-element untuk membuat lingkaran highlighter yang presisi */
+        /* Pseudo-element background lingkaran */
         .day-tile.is-highlighted::before {
             content: "";
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             border-radius: 9999px;
             z-index: 1;
         }
 
-        /* Opsi variasi warna background via pseudo-element */
-        .day-tile.hl-emerald::before { background-color: #a7f3d0; } /* emerald-200 */
-        .day-tile.hl-yellow::before  { background-color: #fef08a; } /* yellow-200 */
-        .day-tile.hl-rose::before    { background-color: #fecdd3; } /* rose-200 */
-        .day-tile.hl-sky::before     { background-color: #bae6fd; } /* sky-200 */
+        /* Palette Warna Highlight */
+        .day-tile.hl-emerald::before { background-color: #a7f3d0; }
+        .day-tile.hl-yellow::before  { background-color: #fef08a; }
+        .day-tile.hl-rose::before    { background-color: #fecdd3; }
+        .day-tile.hl-sky::before     { background-color: #bae6fd; }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
@@ -61,50 +59,28 @@
     <!-- Container Utama -->
     <div class="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
         
-        <!-- Area Kalender yang Akan Dijadikan Gambar/Di-share -->
+        <!-- Area Kalender -->
         <div id="calendar-card" class="bg-white p-4 rounded-xl">
-            <!-- Judul Bulan & Tahun -->
             <h2 id="month-year-title" class="text-xl font-bold text-gray-800 mb-6"></h2>
 
-            <!-- Header Hari (Minggu - Sabtu) -->
+            <!-- Header Hari -->
             <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4 justify-items-center">
-                <div>
-                    <span class="sm:hidden">Min</span>
-                    <span class="hidden sm:block">Minggu</span>
-                </div>
-                <div>
-                    <span class="sm:hidden">Sen</span>
-                    <span class="hidden sm:block">Senin</span>
-                </div>
-                <div>
-                    <span class="sm:hidden">Sel</span>
-                    <span class="hidden sm:block">Selasa</span>
-                </div>
-                <div>
-                    <span class="sm:hidden">Rab</span>
-                    <span class="hidden sm:block">Rabu</span>
-                </div>
-                <div>
-                    <span class="sm:hidden">Kam</span>
-                    <span class="hidden sm:block">Kamis</span>
-                </div>
-                <div>
-                    <span class="sm:hidden">Jum</span>
-                    <span class="hidden sm:block">Jumat</span>
-                </div>
-                <div>
-                    <span class="sm:hidden">Sab</span>
-                    <span class="hidden sm:block">Sabtu</span>
-                </div>
+                <div><span class="sm:hidden">Min</span><span class="hidden sm:block">Minggu</span></div>
+                <div><span class="sm:hidden">Sen</span><span class="hidden sm:block">Senin</span></div>
+                <div><span class="sm:hidden">Sel</span><span class="hidden sm:block">Selasa</span></div>
+                <div><span class="sm:hidden">Rab</span><span class="hidden sm:block">Rabu</span></div>
+                <div><span class="sm:hidden">Kam</span><span class="hidden sm:block">Kamis</span></div>
+                <div><span class="sm:hidden">Jum</span><span class="hidden sm:block">Jumat</span></div>
+                <div><span class="sm:hidden">Sab</span><span class="hidden sm:block">Sabtu</span></div>
             </div>
 
             <!-- Grid Tanggal -->
             <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center">
-                <!-- Tanggal di-generate otomatis oleh JS -->
+                <!-- Tanggal di-generate oleh JS -->
             </div>
         </div>
 
-        <!-- Panel Kontrol Aksi (Tidak Masuk ke dalam Gambar) -->
+        <!-- Panel Kontrol Aksi -->
         <div class="mt-6 border-t pt-4 flex flex-col gap-3">
             <p class="text-xs text-gray-500 text-center">Klik tanggal untuk highlight. Tahan klik (long-press) untuk opsi warna.</p>
 
@@ -124,16 +100,20 @@
     <script>
         /**
          * =========================================================================
-         * PENJELASAN TEKNIS PERBAIKAN OFFLINE BACKGROUND
+         * PENJELASAN TEKNIS PERBAIKAN TOTAL (FINAL FIX)
          * =========================================================================
-         * 1. Mengapa sebelumnya lingkaran tergeser?
-         *    html2canvas sering kebingungan menghitung margin/padding internal ketika 
-         *    background dipasang langsung di elemen yang sama dengan teks yang memakai Flexbox.
+         * Masalah pada gambar sebelumnya:
+         * Teks font bawaan browser memiliki "line-gap" vertikal di bagian bawah teks.
+         * html2canvas merender `line-height` ini secara mentah, membuat angka melompat ke bawah 
+         * dari titik tengah lingkaran background.
          * 
-         * 2. Solusi Pseudo-Element (`::before`):
-         *    Dengan menaruh background di elemen khusus `::before` yang berukuran 100% (top:0, left:0), 
-         *    html2canvas dipaksa menggambar lingkaran tepat menutupi sel seluas 36x36px. 
-         *    Teks angka (`.day-text`) kemudian ditaruh di atasnya (`z-index: 10`) secara independen.
+         * Solusi di kodingan ini:
+         * 1. Menetapkan `line-height: 1 !important` pada container `.day-tile`. Ini membuang seluruh 
+         *    ruang kosong bawaan font di bagian bawah teks.
+         * 2. Menggunakan `display: grid` & `place-items: center` menggantikan flexbox untuk 
+         *    perhitungan matematis posisi piksel yang lebih tepat di html2canvas.
+         * 3. Menambahkan `transform: translateY(-0.5px)` pada `.day-text` untuk mengoreksi offset 
+         *    mikro font sistem pada gambar akhir.
          * =========================================================================
          */
 
@@ -156,28 +136,23 @@
         let pressTimer = null;
         let isLongPress = false;
 
-        // Pemetaan kelas CSS untuk warna highlighter
         const highlightClasses = ["hl-emerald", "hl-yellow", "hl-rose", "hl-sky"];
 
-        // Render cell kosong sebelum tanggal 1
         for (let x = 0; x < firstDayIndex; x++) {
             const emptyDiv = document.createElement("div");
             emptyDiv.className = "w-9 h-9";
             calendarDaysContainer.appendChild(emptyDiv);
         }
 
-        // Render Tanggal 1 s/d Selesai
         for (let day = 1; day <= totalDays; day++) {
             const dayDiv = document.createElement("div");
             dayDiv.className = "day-tile cursor-pointer hover:bg-gray-100 transition";
 
-            // Bungkus angka ke dalam span terpisah agar teks tidak mengacak posisi background
             const textSpan = document.createElement("span");
             textSpan.className = "day-text";
             textSpan.innerText = day;
             dayDiv.appendChild(textSpan);
 
-            // Pop-up Color Picker
             const pickerDiv = document.createElement("div");
             pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-30 transition-all duration-150 transform scale-95 opacity-0";
             
@@ -203,7 +178,6 @@
 
             dayDiv.appendChild(pickerDiv);
 
-            // Logika Long Press
             function startPress(e) {
                 isLongPress = false;
                 pressTimer = setTimeout(() => {
@@ -224,7 +198,6 @@
             dayDiv.addEventListener("touchend", cancelPress);
             dayDiv.addEventListener("touchcancel", cancelPress);
 
-            // Action Klik Biasa (Default Emerald)
             dayDiv.onclick = function(e) {
                 if (e.target.closest(".pop-picker")) return;
 
@@ -240,22 +213,18 @@
             calendarDaysContainer.appendChild(dayDiv);
         }
 
-        // Fungsi Toggle Highlight Menggunakan Pseudo-class
         function applyHighlight(element, targetClass) {
             const currentClass = highlightClasses.find(c => element.classList.contains(c));
 
             if (currentClass === targetClass) {
-                // Hapus highlight
                 element.classList.remove("is-highlighted", currentClass, "font-bold", "text-gray-900");
                 element.classList.add("hover:bg-gray-100");
             } else {
-                // Pasang highlight baru
                 element.classList.remove(...highlightClasses, "hover:bg-gray-100");
                 element.classList.add("is-highlighted", targetClass, "font-bold", "text-gray-900");
             }
         }
 
-        // Kontrol Animasi Pop-up
         function openPicker(pickerEl) {
             if (activePicker && activePicker !== pickerEl) closePicker();
 
@@ -286,7 +255,6 @@
             }
         });
 
-        // Ekspor Gambar yang Presisi
         function generateCalendarCanvas() {
             closePicker();
             const card = document.getElementById("calendar-card");
@@ -296,7 +264,6 @@
                 useCORS: true,
                 logging: false,
                 onclone: (clonedDoc) => {
-                    // Hapus pop-up picker dari kloningan sebelum dijadikan gambar
                     const pickers = clonedDoc.querySelectorAll(".pop-picker");
                     pickers.forEach(el => el.remove());
                 }
