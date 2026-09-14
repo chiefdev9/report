@@ -75,9 +75,9 @@
                 Bagikan ke WhatsApp
             </button>
 
-            <button onclick="downloadCalendar()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200 text-sm">
-                📥 Download Gambar Kalender
-            </button>
+            <button onclick="copyCalendarToClipboard()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200 text-sm">
+    📋 Salin Gambar ke Clipboard
+</button>
         </div>
     </div>
 
@@ -310,14 +310,37 @@
             });
         }
 
-        function downloadCalendar() {
-            generateCalendarCanvas().then(canvas => {
+        async function copyCalendarToClipboard() {
+    try {
+        const canvas = await generateCalendarCanvas();
+        
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                alert("Gagal memproses gambar.");
+                return;
+            }
+
+            // Memeriksa dukungan Clipboard Item API
+            if (navigator.clipboard && window.ClipboardItem) {
+                const item = new ClipboardItem({ "image/png": blob });
+                await navigator.clipboard.write([item]);
+                
+                // Beri umpan balik ke pengguna
+                alert("Gambar berhasil disalin ke clipboard!");
+            } else {
+                alert("Fitur salin gambar tidak didukung di browser ini. Menjalankan fallback download...");
+                // Fallback otomatis download jika browser tidak mendukung
                 const link = document.createElement('a');
                 link.download = `Jadwal_Les_${monthNames[currentMonth]}_${currentYear}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
-            });
-        }
+            }
+        }, 'image/png');
+    } catch (err) {
+        console.error("Gagal menyalin gambar:", err);
+        alert("Gagal menyalin gambar ke clipboard.");
+    }
+}
 
         async function shareToWhatsApp() {
             const canvas = await generateCalendarCanvas();
