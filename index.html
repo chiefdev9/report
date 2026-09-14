@@ -22,11 +22,10 @@
             align-items: center;
             justify-content: center;
 
-            /* Matikan gestur bawaan browser secara total */
             -webkit-touch-callout: none !important;
             -webkit-user-select: none !important;
             user-select: none !important;
-            touch-action: none !important; /* Mencegah scrolling/magnifier menginterupsi long press */
+            touch-action: none !important;
         }
 
         .day-svg {
@@ -34,6 +33,17 @@
             height: 36px;
             overflow: visible;
             pointer-events: none;
+        }
+
+        /* Mengisolasi picker dari aturan touch-action parent */
+        .pop-picker {
+            touch-action: auto !important;
+            pointer-events: auto !important;
+        }
+
+        .color-btn {
+            touch-action: manipulation !important;
+            pointer-events: auto !important;
         }
     </style>
 </head>
@@ -166,7 +176,14 @@
             const { circle, wrapper: dayWrapper } = window.dayElements[day];
 
             const pickerDiv = document.createElement("div");
-            pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-30 transition-all duration-150 transform scale-95 opacity-0";
+            pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-40 transition-all duration-150 transform scale-95 opacity-0";
+
+            // Mencegah gesture parent membatalkan interaksi di dalam picker
+            const preventBubble = (e) => e.stopPropagation();
+            pickerDiv.addEventListener("touchstart", preventBubble, { passive: true });
+            pickerDiv.addEventListener("touchend", preventBubble, { passive: true });
+            pickerDiv.addEventListener("mousedown", preventBubble);
+            pickerDiv.addEventListener("mouseup", preventBubble);
 
             const colors = [
                 { key: "emerald", dot: "bg-emerald-400" },
@@ -178,24 +195,26 @@
             colors.forEach(c => {
                 const btn = document.createElement("button");
                 btn.type = "button";
-                btn.className = `w-5 h-5 rounded-full ${c.dot} hover:scale-125 transition-transform duration-100 focus:outline-none`;
+                btn.className = `color-btn w-5 h-5 rounded-full ${c.dot} hover:scale-125 transition-transform duration-100 focus:outline-none`;
 
-                btn.onpointerdown = function(e) {
-                    e.stopPropagation();
-                };
-
-                btn.onclick = function(e) {
+                const selectColor = (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     toggleHighlightAndSave(day, c.key);
                     closePicker();
                 };
+
+                // Menggunakan pointerdown untuk eksekusi langsung saat disentuh/diklik
+                btn.addEventListener("pointerdown", selectColor);
                 pickerDiv.appendChild(btn);
             });
 
             dayWrapper.appendChild(pickerDiv);
 
             function startPress(e) {
-                // Cegah menu kontekstual dan seleksi bawaan Android
+                // Abaikan jika yang disentuh adalah area picker/tombol warna
+                if (e.target.closest(".pop-picker")) return;
+
                 if (e.cancelable && e.type === "touchstart") {
                     e.preventDefault();
                 }
@@ -206,7 +225,7 @@
                 pressTimer = setTimeout(() => {
                     isLongPress = true;
                     openPicker(pickerDiv);
-                }, 400); // Dipersingkat ke 400ms agar lebih responsif di mobile
+                }, 400);
             }
 
             function cancelPress() {
@@ -217,29 +236,26 @@
             }
 
             function handleEnd(e) {
+                if (e.target.closest(".pop-picker")) return;
+
                 cancelPress();
-                
-                // Jika bukan long press, jalankan fungsi klik biasa
+
                 if (!isLongPress) {
-                    if (e.target.closest(".pop-picker")) return;
                     closePicker();
                     toggleHighlightAndSave(day, "emerald");
                 }
             }
 
-            // Blokir total menu kontekstual bawaan Android
             dayWrapper.oncontextmenu = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 return false;
             };
 
-            // Gunakan listener non-passive untuk memungkinkan e.preventDefault()
             dayWrapper.addEventListener("touchstart", startPress, { passive: false });
             dayWrapper.addEventListener("touchend", handleEnd);
             dayWrapper.addEventListener("touchcancel", cancelPress);
 
-            // Fallback untuk perangkat Desktop/Mouse
             dayWrapper.addEventListener("mousedown", startPress);
             dayWrapper.addEventListener("mouseup", handleEnd);
             dayWrapper.addEventListener("mouseleave", cancelPress);
@@ -320,7 +336,7 @@
             activePicker = null;
         }
 
-        document.addEventListener("click", function(e) {
+        document.addEventListener("pointerdown", function(e) {
             if (activePicker && !e.target.closest(".day-container")) {
                 closePicker();
             }
