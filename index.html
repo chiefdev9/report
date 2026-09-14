@@ -48,7 +48,7 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
         <div id="calendar-card" class="bg-white p-4 rounded-xl">
             <h2 id="month-year-title" class="text-xl font-bold text-gray-800 mb-6"></h2>
 
@@ -66,18 +66,43 @@
             </div>
         </div>
 
-        <div class="mt-6 border-t pt-4 flex flex-col gap-3">
-            
-            <!-- Dropdown Nama Murid & Tombol Salin -->
-            <div class="flex w-full items-center gap-2">
-                <div class="w-[80%]">
-                    <select id="select-student" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-3 rounded-lg text-sm border-r-8 border-transparent outline-none cursor-pointer transition duration-200">
-                        <option value="Zafi">Zafi</option>
-                        <option value="Jidan">Jidan</option>
-                    </select>
+        <div class="mt-6 border-t border-gray-100 pt-4 flex flex-col gap-3">
+            <p class="text-xs text-gray-400 text-center font-medium">
+                Teliti <b>Nama Siswa</b>.
+            </p>
+
+            <!-- KOMPONEN DROPDOWN CUSTOM & TOMBOL SALIN -->
+            <div class="flex w-full items-center gap-2 relative">
+                
+                <!-- Custom Dropdown Container (80%) -->
+                <div class="w-[80%] relative">
+                    <!-- Trigger Button -->
+                    <button id="custom-dropdown-btn" type="button" class="w-full bg-gray-100/80 hover:bg-gray-200/80 text-gray-800 font-semibold py-2.5 px-3.5 rounded-xl text-sm flex items-center justify-between transition-all duration-200 border border-transparent focus:border-gray-300 focus:bg-white focus:shadow-sm">
+                        <span id="dropdown-label" class="truncate">Zafi</span>
+                        <svg id="dropdown-arrow" class="w-4 h-4 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+
+                    <!-- Floating Menu Option -->
+                    <div id="custom-dropdown-menu" class="hidden absolute left-0 right-0 bottom-full mb-2 bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-xl p-1.5 z-50 transition-all duration-200 opacity-0 scale-95 transform origin-bottom">
+                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-1.5">Nama Murid</div>
+                        <ul id="student-list-options" class="flex flex-col gap-0.5">
+                            <!-- Daftar Murid (Dapat ditambah/edit dengan mudah di atribut data-value) -->
+                            <li data-value="Zafi" class="student-option px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between transition-colors">
+                                <span>Zafi</span>
+                                <svg class="check-icon w-4 h-4 text-gray-800 hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                            </li>
+                            <li data-value="Jidan" class="student-option px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center justify-between transition-colors">
+                                <span>Jidan</span>
+                                <svg class="check-icon w-4 h-4 text-gray-800 hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
-                <button id="btn-copy" title="Salin Gambar ke Clipboard" class="w-[20%] h-[38px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg flex items-center justify-center transition duration-200">
+                <!-- Tombol Copy Icon (20%) -->
+                <button id="btn-copy" title="Salin Gambar ke Clipboard" class="w-[20%] h-[42px] bg-gray-100/80 hover:bg-gray-200/80 text-gray-700 font-semibold rounded-xl flex items-center justify-center transition duration-200 active:scale-95">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                     </svg>
@@ -149,7 +174,7 @@
         }
     </script>
 
-    <!-- SCRIPT MODULE: Firebase Sync Per Murid -->
+    <!-- SCRIPT MODULE: Firebase Sync & Custom Dropdown Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
@@ -176,27 +201,92 @@
             "sky":     "#bae6fd"
         };
 
-        const selectStudent = document.getElementById("select-student");
-        let activePicker = null;
-        let pressTimer = null;
-        let isLongPress = false;
-        
-        let scheduleData = {};
-        let unsubscribeSnapshot = null; // Menyimpan fungsi pembatal listener sebelumnya
+        // --- MANAJEMEN CUSTOM DROPDOWN ---
+        const dropdownBtn = document.getElementById("custom-dropdown-btn");
+        const dropdownMenu = document.getElementById("custom-dropdown-menu");
+        const dropdownArrow = document.getElementById("dropdown-arrow");
+        const dropdownLabel = document.getElementById("dropdown-label");
+        const studentOptions = document.querySelectorAll(".student-option");
 
-        // =========================================================================
-        // SINKRONISASI JADWAL TERHUBUNG KE NAMA MURID TERPILIH
-        // =========================================================================
+        let currentSelectedStudent = "Zafi";
+
+        function toggleDropdown() {
+            const isHidden = dropdownMenu.classList.contains("hidden");
+            if (isHidden) {
+                dropdownMenu.classList.remove("hidden");
+                setTimeout(() => {
+                    dropdownMenu.classList.remove("opacity-0", "scale-95");
+                    dropdownMenu.classList.add("opacity-100", "scale-100");
+                    dropdownArrow.classList.add("rotate-180");
+                }, 10);
+            } else {
+                closeDropdown();
+            }
+        }
+
+        function closeDropdown() {
+            dropdownMenu.classList.remove("opacity-100", "scale-100");
+            dropdownMenu.classList.add("opacity-0", "scale-95");
+            dropdownArrow.classList.remove("rotate-180");
+            setTimeout(() => {
+                dropdownMenu.classList.add("hidden");
+            }, 150);
+        }
+
+        dropdownBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleDropdown();
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!dropdownMenu.contains(e.target) && !dropdownBtn.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        function updateDropdownUI(val) {
+            currentSelectedStudent = val;
+            dropdownLabel.innerText = val;
+
+            studentOptions.forEach(opt => {
+                const checkIcon = opt.querySelector(".check-icon");
+                if (opt.dataset.value === val) {
+                    opt.classList.add("bg-gray-100", "text-gray-900", "font-semibold");
+                    checkIcon.classList.remove("hidden");
+                } else {
+                    opt.classList.remove("bg-gray-100", "text-gray-900", "font-semibold");
+                    checkIcon.classList.add("hidden");
+                }
+            });
+        }
+
+        studentOptions.forEach(opt => {
+            opt.addEventListener("click", () => {
+                const selectedVal = opt.dataset.value;
+                updateDropdownUI(selectedVal);
+                closeDropdown();
+                subscribeToStudentSchedule();
+            });
+        });
+
+        // Ambil data murid terakhir dari localStorage
+        const lastStudent = localStorage.getItem("last_selected_student");
+        if (lastStudent && Array.from(studentOptions).some(o => o.dataset.value === lastStudent)) {
+            updateDropdownUI(lastStudent);
+        } else {
+            updateDropdownUI("Zafi");
+        }
+
+        // --- SINKRONISASI FIRESTORE ---
+        let scheduleData = {};
+        let unsubscribeSnapshot = null;
+
         function subscribeToStudentSchedule() {
-            // Unsubscribe listener lama agar tidak dobel saat ganti murid
             if (unsubscribeSnapshot) unsubscribeSnapshot();
 
-            const selectedStudent = selectStudent.value;
-            // Menyimpan murid aktif ke localStorage untuk kenyamanan sesi lokal
-            localStorage.setItem("last_selected_student", selectedStudent);
+            localStorage.setItem("last_selected_student", currentSelectedStudent);
 
-            // Document ID unik: TAHUN-BULAN_NAMAMURID (Contoh: 2026-9_Zafi)
-            const docId = `${currentYear}-${currentMonth + 1}_${selectedStudent}`;
+            const docId = `${currentYear}-${currentMonth + 1}_${currentSelectedStudent}`;
             const scheduleDocRef = doc(db, "les_schedules", docId);
 
             unsubscribeSnapshot = onSnapshot(scheduleDocRef, (docSnap) => {
@@ -209,17 +299,12 @@
             });
         }
 
-        // Ambil murid terakhir yang pernah dipilih jika ada
-        const lastStudent = localStorage.getItem("last_selected_student");
-        if (lastStudent && Array.from(selectStudent.options).some(o => o.value === lastStudent)) {
-            selectStudent.value = lastStudent;
-        }
-
-        // Panggil fungsi sinkronisasi awal
         subscribeToStudentSchedule();
 
-        // Ganti data kalender setiap kali dropdown murid diganti
-        selectStudent.addEventListener("change", subscribeToStudentSchedule);
+        // --- COLOR PICKER & HIGHLIGHT LOGIC ---
+        let activePicker = null;
+        let pressTimer = null;
+        let isLongPress = false;
 
         for (let day = 1; day <= totalDays; day++) {
             const { circle, wrapper: dayWrapper } = window.dayElements[day];
@@ -325,8 +410,7 @@
         }
 
         async function toggleHighlightAndSave(day, colorKey) {
-            const selectedStudent = selectStudent.value;
-            const docId = `${currentYear}-${currentMonth + 1}_${selectedStudent}`;
+            const docId = `${currentYear}-${currentMonth + 1}_${currentSelectedStudent}`;
             const scheduleDocRef = doc(db, "les_schedules", docId);
 
             const currentSavedColor = scheduleData[day];
@@ -377,6 +461,7 @@
 
         function generateCalendarCanvas() {
             closePicker();
+            closeDropdown();
             const card = document.getElementById("calendar-card");
 
             return html2canvas(card, { 
@@ -433,7 +518,7 @@
                 } else {
                     const canvas = await generateCalendarCanvas();
                     const link = document.createElement('a');
-                    link.download = `Jadwal_Les_${selectStudent.value}_${monthNames[currentMonth]}_${currentYear}.png`;
+                    link.download = `Jadwal_Les_${currentSelectedStudent}_${monthNames[currentMonth]}_${currentYear}.png`;
                     link.href = canvas.toDataURL("image/png");
                     link.click();
                     showToast("Gambar diunduh!");
