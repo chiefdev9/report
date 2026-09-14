@@ -81,6 +81,11 @@
         </div>
     </div>
 
+    <!-- Toast Notification -->
+<div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none z-50 flex items-center gap-2">
+    <span>Gambar berhasil disalin ke clipboard!</span>
+</div>
+
     <script>
         /**
          * =========================================================================
@@ -310,6 +315,8 @@
             });
         }
 
+        // fungsi salin gambar ke perangkat
+
         async function copyCalendarToClipboard() {
     try {
         const canvas = await generateCalendarCanvas();
@@ -326,9 +333,9 @@
                 await navigator.clipboard.write([item]);
                 
                 // Beri umpan balik ke pengguna
-                alert("Gambar berhasil disalin ke clipboard!");
+                showToast("Gambar berhasil disalin ke clipboard!");
             } else {
-                alert("Fitur salin gambar tidak didukung di browser ini. Menjalankan fallback download...");
+                showToast("Fitur salin gambar tidak didukung di browser ini. Menjalankan fallback download...");
                 // Fallback otomatis download jika browser tidak mendukung
                 const link = document.createElement('a');
                 link.download = `Jadwal_Les_${monthNames[currentMonth]}_${currentYear}.png`;
@@ -338,8 +345,25 @@
         }, 'image/png');
     } catch (err) {
         console.error("Gagal menyalin gambar:", err);
-        alert("Gagal menyalin gambar ke clipboard.");
+        showToast("Gagal menyalin gambar ke clipboard.");
     }
+
+
+    // perbaharui alert bawaan jadi lebih modern dengan toast
+    function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.querySelector("span").innerText = message;
+    
+    // Tampilkan Toast
+    toast.classList.remove("opacity-0", "pointer-events-none");
+    toast.classList.add("opacity-100");
+
+    // Sembunyikan otomatis setelah 2 detik
+    setTimeout(() => {
+        toast.classList.remove("opacity-100");
+        toast.classList.add("opacity-0", "pointer-events-none");
+    }, 2000);
+}
 }
 
         async function shareToWhatsApp() {
