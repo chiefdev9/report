@@ -401,35 +401,43 @@
          * menyimpan objek Blob PNG langsung ke memori clipboard pengguna.
          */
         async function copyCalendarToClipboard() {
-            try {
-                const canvas = await generateCalendarCanvas();
-                
-                canvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        showToast("Gagal memproses gambar.");
-                        return;
-                    }
+    // Jalankan notifikasi feedback instan
+    showToast("Salin gambar ke clipboard...");
 
-                    // Pengecekan Dukungan Browser terhadap Clipboard Item API
-                    if (navigator.clipboard && window.ClipboardItem) {
-                        const item = new ClipboardItem({ "image/png": blob });
-                        await navigator.clipboard.write([item]);
-                        
-                        showToast("Gambar berhasil disalin ke clipboard!");
-                    } else {
-                        // Fallback jika browser sangat lama dan tidak mendukung Clipboard API
-                        showToast("Browser tidak mendukung salin otomatis. Mengunduh gambar...");
-                        const link = document.createElement('a');
-                        link.download = `Jadwal_Les_${monthNames[currentMonth]}_${currentYear}.png`;
-                        link.href = canvas.toDataURL("image/png");
-                        link.click();
-                    }
-                }, 'image/png');
-            } catch (err) {
-                console.error("Gagal menyalin gambar:", err);
-                showToast("Gagal menyalin gambar ke clipboard.");
-            }
+    try {
+        if (navigator.clipboard && window.ClipboardItem) {
+            // Memberikan Promise Blob langsung ke ClipboardItem
+            const clipboardPromise = new Promise(async (resolve, reject) => {
+                try {
+                    const canvas = await generateCalendarCanvas();
+                    canvas.toBlob((blob) => {
+                        if (blob) resolve(blob);
+                        else reject(new Error("Blob gagal dibuat"));
+                    }, 'image/png');
+                } catch (e) {
+                    reject(e);
+                }
+            });
+
+            // Browser menyalin *Promise* secara instan tanpa menunggu proses render canvas
+            const item = new ClipboardItem({ "image/png": clipboardPromise });
+            await navigator.clipboard.write([item]);
+            
+            showToast("Gambar berhasil disalin!");
+        } else {
+            // Fallback untuk browser lama
+            const canvas = await generateCalendarCanvas();
+            const link = document.createElement('a');
+            link.download = `Jadwal_Les_${monthNames[currentMonth]}_${currentYear}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            showToast("Gambar diunduh!");
         }
+    } catch (err) {
+        console.error("Gagal menyalin gambar:", err);
+        showToast("❌ Gagal menyalin gambar.");
+    }
+}
 
         
     </script>
