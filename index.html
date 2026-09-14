@@ -5,34 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jadwal Pertemuan Les</title>
     
-    <!-- 
-      =========================================================================
-      1. DEPENDENSI EKSTERNAL (UI & UTILITY)
-      =========================================================================
-      - Tailwind CSS: Framework Utility-first CSS untuk mempercepat styling UI.
-      - html2canvas: Library untuk merender / 'melukis' elemen DOM HTML menjadi
-        objek Canvas (Bitmap Gambar PNG) sehingga bisa diunduh atau disalin.
-      =========================================================================
-    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        /* 
-         * STYLING GLOBAL & FONTS:
-         * Menggunakan system font stack bawaan OS agar font terlihat native, 
-         * tajam, serta cepat dimuat di perangkat apa pun.
-         */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6; /* Latar belakang abu-abu muda lembut (gray-100) */
+            background-color: #f3f4f6;
         }
 
-        /* 
-         * DESAIN KONTAINER TANGGAL (UX HIT TARGET):
-         * Menentukan ukuran area sentuh (touch target) sebesar 36x36px.
-         * Ukuran ini ideal untuk kenyamanan jari pengguna saat melakukan tap/klik.
-         */
         .day-container {
             position: relative;
             width: 36px;
@@ -42,10 +23,6 @@
             justify-content: center;
         }
 
-        /* 
-         * STYLING VEKTOR SVG:
-         * Dipaksa memenuhi kontainer agar presisi dan fleksibel terhadap respon render.
-         */
         .day-svg {
             width: 36px;
             height: 36px;
@@ -55,31 +32,10 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <!-- 
-      =========================================================================
-      2. STRUKTUR UTAMA WIDGET (UI CONTAINER)
-      =========================================================================
-      Menggunakan pendekatan Card Layout yang bersih dengan sudut melengkung (rounded-xl)
-      dan bayangan lembut (shadow-md) untuk memisahkan fokus konten dari background.
-    -->
     <div class="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
-        
-        <!-- 
-          AREA TANGKAPAN GAMBAR (#calendar-card):
-          Elemen ini yang nantinya akan di-capture oleh html2canvas. 
-          Semua elemen di dalam ID ini yang akan diubah menjadi gambar.
-        -->
         <div id="calendar-card" class="bg-white p-4 rounded-xl">
-            
-            <!-- Judul Dinamis Bulan & Tahun -->
             <h2 id="month-year-title" class="text-xl font-bold text-gray-800 mb-6"></h2>
 
-            <!-- 
-              HEADER HARI (Grid 7 Kolom - Responsive UX):
-              Menggunakan Tailwind Responsive Utilities:
-              - Tampilan Mobile (< 640px): Menggunakan singkatan (Min, Sen, Sel...) agar hemat ruang.
-              - Tampilan Desktop (>= 640px): Memunculkan nama hari lengkap.
-            -->
             <div class="grid grid-cols-7 text-center font-medium text-gray-700 text-xs sm:text-sm mb-4 justify-items-center">
                 <div><span class="sm:hidden">Min</span><span class="hidden sm:block">Minggu</span></div>
                 <div><span class="sm:hidden">Sen</span><span class="hidden sm:block">Senin</span></div>
@@ -90,55 +46,30 @@
                 <div><span class="sm:hidden">Sab</span><span class="hidden sm:block">Sabtu</span></div>
             </div>
 
-            <!-- GRID TANGGAL: Seluruh tanggal akan digenerate otomatis oleh JavaScript -->
             <div id="calendar-days" class="grid grid-cols-7 gap-y-3 text-center text-gray-800 text-sm font-medium justify-items-center">
-                <!-- Dynamic Content via JS -->
             </div>
         </div>
 
-        <!-- 
-          =====================================================================
-          3. PANEL KONTROL AKSI (UX BUTTONS)
-          =====================================================================
-          Terpisah dari area capture (#calendar-card) agar tombol tidak ikut
-          terfoto ke dalam gambar akhir kalender.
-        -->
         <div class="mt-6 border-t pt-4 flex flex-col gap-3">
-            <!-- Teks Panduan Mikro (Microcopy UX) untuk memandu gestur pengguna -->
             <p class="text-xs text-gray-500 text-center">
                 Klik tanggal untuk highlight. Tahan klik (long-press) untuk opsi warna.
             </p>
 
-            <!-- Tombol Sekunder: Salin Hasil ke Clipboard -->
             <button id="btn-copy" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-200 text-sm">
                 📋 Salin Gambar ke Clipboard
             </button>
         </div>
     </div>
 
-    <!-- 
-      =========================================================================
-      4. KOMPONEN TOAST NOTIFICATION (UI FEEDBACK)
-      =========================================================================
-      Pengganti alert() bawaan browser. Melayang secara fixed di tengah bawah layar.
-      Menggunakan kelas 'opacity-0' dan 'pointer-events-none' secara default agar tersembunyi.
-    -->
     <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none z-50 flex items-center gap-2">
         <span>Gambar berhasil disalin ke clipboard!</span>
     </div>
 
-    <!-- 
-      =========================================================================
-      5. LOGIKA APLIKASI & INTEGRASI FIREBASE (JAVASCRIPT MODULE)
-      =========================================================================
-    -->
     <script type="module">
-        // Import Firebase App dan Analytics SDK (Modular ES6)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Konfigurasi Kredensial Firebase Project "share-recap"
         const firebaseConfig = {
             apiKey: "AIzaSyBs2RwkyPaIugpdFSpYWRnZK0Ry1j0OLek",
             authDomain: "share-recap.firebaseapp.com",
@@ -149,12 +80,10 @@
             measurementId: "G-PEPWBTK71S"
         };
 
-        // Inisialisasi Firebase
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
-        const db = getFirestore(app); // Menyiapkan instance Database Firestore
+        const db = getFirestore(app);
 
-        // Mengambil Waktu Sekarang secara Otomatis
         const date = new Date();
         const currentYear = date.getFullYear();
         const currentMonth = date.getMonth();
@@ -164,41 +93,32 @@
             "Juli", "Agustus", "September", "Oktober", "November", "Desember"
         ];
 
-        // Set Judul Bulan & Tahun di UI
         document.getElementById("month-year-title").innerText = `${monthNames[currentMonth]} ${currentYear}`;
         const calendarDaysContainer = document.getElementById("calendar-days");
 
-        // Menghitung Hari Pertama dalam Bulan & Total Hari
         const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
         const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-        // Variable State untuk Gestur Interaksi Pengguna
         let activePicker = null;
         let pressTimer = null;
         let isLongPress = false;
 
-        // Pemetaan Kode Warna Hex untuk Lingkaran Highlight SVG
         const colorMap = {
-            "emerald": "#a7f3d0", // Hijau lembut
-            "yellow":  "#fef08a", // Kuning lembut
-            "rose":    "#fecdd3", // Merah muda
-            "sky":     "#bae6fd"  // Biru muda
+            "emerald": "#a7f3d0",
+            "yellow":  "#fef08a",
+            "rose":    "#fecdd3",
+            "sky":     "#bae6fd"
         };
 
-        /*
-         * RENDER SLOT KOSONG:
-         * Membuat div transparan jika hari ke-1 tidak jatuh di hari Minggu (offset grid)
-         */
+        // Menyimpan referensi elemen tanggal untuk diupdate oleh Firestore real-time listener
+        const dayElements = {};
+
         for (let x = 0; x < firstDayIndex; x++) {
             const emptyDiv = document.createElement("div");
             emptyDiv.className = "w-9 h-9";
             calendarDaysContainer.appendChild(emptyDiv);
         }
 
-        /*
-         * RENDER TANGGAL (1 s/d Total Hari):
-         * Dibuat menggunakan elemen SVG Murni untuk menjamin kepresisian bentuk lingkaran & posisi teks.
-         */
         for (let day = 1; day <= totalDays; day++) {
             const dayWrapper = document.createElement("div");
             dayWrapper.className = "day-container cursor-pointer select-none";
@@ -208,7 +128,6 @@
             svg.setAttribute("viewBox", "0 0 36 36");
             svg.setAttribute("class", "day-svg");
 
-            // 1. SVG Circle (Highlight Latar Tanggal)
             const circle = document.createElementNS(svgNS, "circle");
             circle.setAttribute("cx", "18");
             circle.setAttribute("cy", "18");
@@ -216,21 +135,22 @@
             circle.setAttribute("fill", "transparent");
             circle.setAttribute("class", "transition-colors duration-150");
 
-            // 2. SVG Text (Angka Tanggal)
             const text = document.createElementNS(svgNS, "text");
             text.setAttribute("x", "18");
-            text.setAttribute("y", "23"); // Koordinat titik tengah vertikal aman bagi html2canvas
+            text.setAttribute("y", "23");
             text.setAttribute("text-anchor", "middle");
             text.setAttribute("font-size", "14");
             text.setAttribute("font-weight", "500");
-            text.setAttribute("fill", "#1f2937"); // Gray 800
+            text.setAttribute("fill", "#1f2937");
             text.textContent = day;
 
             svg.appendChild(circle);
             svg.appendChild(text);
             dayWrapper.appendChild(svg);
 
-            // Visual Feedback: Hover effect saat kursor melintas
+            // Simpan referensi DOM per tanggal
+            dayElements[day] = { circle, text };
+
             dayWrapper.addEventListener("mouseenter", () => {
                 if (circle.getAttribute("fill") === "transparent") {
                     circle.setAttribute("fill", "#f3f4f6");
@@ -242,10 +162,6 @@
                 }
             });
 
-            /*
-             * POP-UP COLOR PICKER (UX INTERAKSI TAMBAHAN):
-             * Muncul saat gestur Long Press dilakukan.
-             */
             const pickerDiv = document.createElement("div");
             pickerDiv.className = "pop-picker hidden absolute -top-12 left-1/2 -translate-x-1/2 flex gap-1.5 p-1.5 bg-white border border-gray-200 shadow-xl rounded-full z-30 transition-all duration-150 transform scale-95 opacity-0";
             
@@ -263,7 +179,7 @@
                 
                 btn.onclick = function(e) {
                     e.stopPropagation();
-                    applySvgHighlight(circle, text, c.key);
+                    toggleHighlightAndSave(day, c.key);
                     closePicker();
                 };
                 pickerDiv.appendChild(btn);
@@ -271,9 +187,6 @@
 
             dayWrapper.appendChild(pickerDiv);
 
-            /*
-             * DETEKSI GESTUR LONG-PRESS (Mobile & Desktop UX)
-             */
             function startPress(e) {
                 isLongPress = false;
                 pressTimer = setTimeout(() => {
@@ -288,13 +201,11 @@
 
             dayWrapper.addEventListener("mousedown", startPress);
             dayWrapper.addEventListener("touchstart", startPress, { passive: true });
-
             dayWrapper.addEventListener("mouseup", cancelPress);
             dayWrapper.addEventListener("mouseleave", cancelPress);
             dayWrapper.addEventListener("touchend", cancelPress);
             dayWrapper.addEventListener("touchcancel", cancelPress);
 
-            // Klik Singkat (Default Toggle Warna Emerald)
             dayWrapper.onclick = function(e) {
                 if (e.target.closest(".pop-picker")) return;
 
@@ -304,31 +215,66 @@
                 }
 
                 closePicker();
-                applySvgHighlight(circle, text, "emerald");
+                toggleHighlightAndSave(day, "emerald");
             };
 
             calendarDaysContainer.appendChild(dayWrapper);
         }
 
-        /*
-         * HELPER TOGGLE HIGHLIGHT TANGGAL
-         */
-        function applySvgHighlight(circleEl, textEl, colorKey) {
-            const targetHex = colorMap[colorKey];
-            const currentFill = circleEl.getAttribute("fill");
+        // =========================================================================
+        // REAL-TIME FIRESTORE SYNC ENGINE
+        // =========================================================================
+        const docId = `${currentYear}-${currentMonth + 1}`;
+        const scheduleDocRef = doc(db, "les_schedules", docId);
+        let scheduleData = {};
 
-            if (currentFill === targetHex) {
-                circleEl.setAttribute("fill", "transparent");
-                textEl.setAttribute("font-weight", "500");
-                textEl.setAttribute("fill", "#1f2937");
+        // 1. Listen perubahan data dari Firestore secara Real-Time
+        onSnapshot(scheduleDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                scheduleData = docSnap.data();
+                renderAllHighlights();
             } else {
-                circleEl.setAttribute("fill", targetHex);
-                textEl.setAttribute("font-weight", "700");
-                textEl.setAttribute("fill", "#111827");
+                scheduleData = {};
+                renderAllHighlights();
+            }
+        });
+
+        // 2. Tampilkan warna highlight sesuai data terbaru dari Firestore
+        function renderAllHighlights() {
+            for (let day = 1; day <= totalDays; day++) {
+                const { circle, text } = dayElements[day];
+                const colorKey = scheduleData[day];
+
+                if (colorKey && colorMap[colorKey]) {
+                    circle.setAttribute("fill", colorMap[colorKey]);
+                    text.setAttribute("font-weight", "700");
+                    text.setAttribute("fill", "#111827");
+                } else {
+                    circle.setAttribute("fill", "transparent");
+                    text.setAttribute("font-weight", "500");
+                    text.setAttribute("fill", "#1f2937");
+                }
             }
         }
 
-        // FUNGSI ANIMASI KONTROL PICKER POP-UP
+        // 3. Simpan perubahan ke Firestore
+        async function toggleHighlightAndSave(day, colorKey) {
+            const currentSavedColor = scheduleData[day];
+            
+            if (currentSavedColor === colorKey) {
+                delete scheduleData[day];
+            } else {
+                scheduleData[day] = colorKey;
+            }
+
+            try {
+                await setDoc(scheduleDocRef, scheduleData);
+            } catch (err) {
+                console.error("Gagal menyimpan ke Firestore:", err);
+                showToast("❌ Gagal menyinkronkan data.");
+            }
+        }
+
         function openPicker(pickerEl) {
             if (activePicker && activePicker !== pickerEl) closePicker();
 
@@ -359,9 +305,6 @@
             }
         });
 
-        /*
-         * FUNGSI GENERATE CANVAS & EXPORT GAMBAR
-         */
         function generateCalendarCanvas() {
             closePicker();
             const card = document.getElementById("calendar-card");
@@ -383,9 +326,6 @@
             });
         }
 
-        /*
-         * FUNGSI UTILITY: TOAST NOTIFICATION
-         */
         function showToast(message) {
             const toast = document.getElementById("toast");
             toast.querySelector("span").innerText = message;
@@ -399,9 +339,6 @@
             }, 2000);
         }
 
-        /*
-         * FUNGSI UTAMA: SALIN GAMBAR KE CLIPBOARD
-         */
         async function copyCalendarToClipboard() {
             showToast("Salin gambar ke clipboard...");
 
@@ -437,7 +374,6 @@
             }
         }
 
-        // Attach event listener ke tombol salin
         document.getElementById("btn-copy").addEventListener("click", copyCalendarToClipboard);
     </script>
 </body>
